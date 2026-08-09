@@ -25,7 +25,7 @@ struct TerminalPane: View {
             }
         }
         .shadow(color: .black.opacity(compact ? 0.18 : 0), radius: 8, y: 3)
-        .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+        .onDrop(of: [.fileURL, .image], isTargeted: $isDropTargeted) { providers in
             performDrop(providers)
         }
         .overlay {
@@ -40,14 +40,9 @@ struct TerminalPane: View {
         guard model.runtime(for: session.id)?.isRunning == true else { return false }
         Task {
             var paths: [String] = []
-            for provider in providers where provider.canLoadObject(ofClass: URL.self) {
-                let url: URL? = await withCheckedContinuation { continuation in
-                    provider.loadObject(ofClass: URL.self) { object, _ in
-                        continuation.resume(returning: object as? URL)
-                    }
-                }
-                if let url {
-                    paths.append(url.path)
+            for provider in providers {
+                if let path = await droppedPath(for: provider) {
+                    paths.append(path)
                 }
             }
             let text = CommandBuilder.droppedPaths(paths)
@@ -55,6 +50,48 @@ struct TerminalPane: View {
             model.runtime(for: session.id)?.send(text: text)
         }
         return true
+    }
+
+    private func droppedPath(for provider: NSItemProvider) async -> String? {
+        if provider.canLoadObject(ofClass: URL.self) {
+            let url: URL? = await withCheckedContinuation { continuation in
+                provider.loadObject(ofClass: URL.self) { object, _ in
+                    continuation.resume(returning: object as? URL)
+                }
+            }
+            return url?.path
+        }
+        guard let data = await imageData(from: provider) else { return nil }
+        return writeTemporaryImage(data: data)
+    }
+
+    private func imageData(from provider: NSItemProvider) async -> Data? {
+        guard let type = provider.registeredTypeIdentifiers
+            .first(where: { UTType($0)?.isSubtype(of: .image) ?? false })
+        else { return nil }
+        return await withCheckedContinuation { continuation in
+            provider.loadDataRepresentation(forTypeIdentifier: type) { data, _ in
+                continuation.resume(returning: data)
+            }
+        }
+    }
+
+    private func writeTemporaryImage(data: Data) -> String? {
+        guard let image = NSImage(data: data),
+              let tiff = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiff),
+              let png = bitmap.representation(using: .png, properties: [:])
+        else { return nil }
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("MaxCLI Drops", isDirectory: true)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let file = directory.appendingPathComponent("dropped-\(UUID().uuidString).png")
+        do {
+            try png.write(to: file)
+            return file.path
+        } catch {
+            return nil
+        }
     }
 
     private var header: some View {
