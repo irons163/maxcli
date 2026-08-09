@@ -1,0 +1,31 @@
+import Foundation
+
+enum CommandBuilder {
+    static func shellEscape(_ value: String) -> String {
+        "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
+
+    static func loginShellArguments(
+        for session: WorkspaceSession,
+        executableLocator: ExecutableLocator = ExecutableLocator()
+    ) -> [String] {
+        let command = launchCommand(for: session, executableLocator: executableLocator)
+        let fallback = "printf '\\033[31mMaxCLI: command is empty\\033[0m\\n'; exec \"$SHELL\" -l"
+        let executableCommand = command.isEmpty ? fallback : "exec \(command)"
+        return ["-l", "-c", "cd \(shellEscape(session.workingDirectory)); \(executableCommand)"]
+    }
+
+    private static func launchCommand(
+        for session: WorkspaceSession,
+        executableLocator: ExecutableLocator
+    ) -> String {
+        let command = session.launchCommand.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !command.isEmpty, session.agent != .custom,
+              let executablePath = executableLocator.path(for: session.agent)
+        else { return command }
+
+        let escapedExecutable = shellEscape(executablePath)
+        let arguments = session.arguments.trimmingCharacters(in: .whitespacesAndNewlines)
+        return arguments.isEmpty ? escapedExecutable : "\(escapedExecutable) \(arguments)"
+    }
+}
