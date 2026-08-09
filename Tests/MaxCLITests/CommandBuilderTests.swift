@@ -59,6 +59,14 @@ final class CommandBuilderTests: XCTestCase {
         )
     }
 
+    func testDroppedPathsEscapesAndJoinsWithSpaces() {
+        XCTAssertEqual(
+            CommandBuilder.droppedPaths(["/tmp/a.png", "/tmp/it's here/b.jpg", ""]),
+            "'/tmp/a.png' '/tmp/it'\\''s here/b.jpg'"
+        )
+        XCTAssertEqual(CommandBuilder.droppedPaths([]), "")
+    }
+
     func testRestoredSessionsAreStopped() throws {
         let suite = "MaxCLITests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

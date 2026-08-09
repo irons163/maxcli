@@ -5,6 +5,13 @@ enum CommandBuilder {
         "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 
+    static func droppedPaths(_ paths: [String]) -> String {
+        paths
+            .filter { !$0.isEmpty }
+            .map(shellEscape)
+            .joined(separator: " ")
+    }
+
     static func loginShellArguments(
         for session: WorkspaceSession,
         executableLocator: ExecutableLocator = ExecutableLocator()

@@ -84,6 +84,12 @@ final class TerminalRuntime: NSObject, @preconcurrency LocalProcessTerminalViewD
         terminalView.terminate()
     }
 
+    func send(text: String) {
+        guard terminalView.process.running, !text.isEmpty else { return }
+        terminalView.send(txt: text)
+        focus()
+    }
+
     func focus() {
         terminalView.window?.makeFirstResponder(terminalView)
     }

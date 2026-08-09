@@ -1,9 +1,11 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct TerminalPane: View {
     @EnvironmentObject private var model: AppModel
     let session: WorkspaceSession
     let compact: Bool
+    @State private var isDropTargeted = false
 
     private var isSelected: Bool { model.selectedSessionID == session.id }
     private var runtime: TerminalRuntime? { model.runtime(for: session.id) }
@@ -23,6 +25,36 @@ struct TerminalPane: View {
             }
         }
         .shadow(color: .black.opacity(compact ? 0.18 : 0), radius: 8, y: 3)
+        .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+            performDrop(providers)
+        }
+        .overlay {
+            if isDropTargeted {
+                RoundedRectangle(cornerRadius: compact ? 10 : 0)
+                    .stroke(Color.accentColor, lineWidth: 2)
+            }
+        }
+    }
+
+    private func performDrop(_ providers: [NSItemProvider]) -> Bool {
+        guard model.runtime(for: session.id)?.isRunning == true else { return false }
+        Task {
+            var paths: [String] = []
+            for provider in providers where provider.canLoadObject(ofClass: URL.self) {
+                let url: URL? = await withCheckedContinuation { continuation in
+                    provider.loadObject(ofClass: URL.self) { object, _ in
+                        continuation.resume(returning: object as? URL)
+                    }
+                }
+                if let url {
+                    paths.append(url.path)
+                }
+            }
+            let text = CommandBuilder.droppedPaths(paths)
+            guard !text.isEmpty else { return }
+            model.runtime(for: session.id)?.send(text: text)
+        }
+        return true
     }
 
     private var header: some View {
