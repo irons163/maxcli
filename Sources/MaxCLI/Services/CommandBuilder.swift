@@ -5,10 +5,10 @@ enum CommandBuilder {
         "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 
-    static func droppedPaths(_ paths: [String]) -> String {
+    static func pastedPaths(_ paths: [String]) -> String {
         paths
             .filter { !$0.isEmpty }
-            .map(shellEscape)
+            .map { "\u{1B}[200~\($0)\u{1B}[201~" }
             .joined(separator: " ")
     }
 

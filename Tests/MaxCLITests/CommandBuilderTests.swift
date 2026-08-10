@@ -59,12 +59,12 @@ final class CommandBuilderTests: XCTestCase {
         )
     }
 
-    func testDroppedPathsEscapesAndJoinsWithSpaces() {
+    func testPastedPathsWrapsEachPathInBracketedPaste() {
         XCTAssertEqual(
-            CommandBuilder.droppedPaths(["/tmp/a.png", "/tmp/it's here/b.jpg", ""]),
-            "'/tmp/a.png' '/tmp/it'\\''s here/b.jpg'"
+            CommandBuilder.pastedPaths(["/tmp/a.png", "/tmp/it's here/b.jpg", ""]),
+            "\u{1B}[200~/tmp/a.png\u{1B}[201~ \u{1B}[200~/tmp/it's here/b.jpg\u{1B}[201~"
         )
-        XCTAssertEqual(CommandBuilder.droppedPaths([]), "")
+        XCTAssertEqual(CommandBuilder.pastedPaths([]), "")
     }
 
     func testRestoredSessionsAreStopped() throws {

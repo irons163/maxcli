@@ -5,6 +5,7 @@ struct TerminalPane: View {
     @EnvironmentObject private var model: AppModel
     let session: WorkspaceSession
     let compact: Bool
+    var onRequestClose: () -> Void = {}
     @State private var isDropTargeted = false
 
     private var isSelected: Bool { model.selectedSessionID == session.id }
@@ -45,7 +46,7 @@ struct TerminalPane: View {
                     paths.append(path)
                 }
             }
-            let text = CommandBuilder.droppedPaths(paths)
+            let text = CommandBuilder.pastedPaths(paths)
             guard !text.isEmpty else { return }
             model.runtime(for: session.id)?.send(text: text)
         }
@@ -83,7 +84,7 @@ struct TerminalPane: View {
               let png = bitmap.representation(using: .png, properties: [:])
         else { return nil }
         let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("MaxCLI Drops", isDirectory: true)
+            .appendingPathComponent("MaxCLIDrops", isDirectory: true)
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let file = directory.appendingPathComponent("dropped-\(UUID().uuidString).png")
         do {
@@ -131,6 +132,20 @@ struct TerminalPane: View {
                 .buttonStyle(.plain)
                 .font(.caption)
                 .foregroundStyle(.green)
+            }
+
+            Button {
+                onRequestClose()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .semibold))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.white.opacity(0.45))
+            .help("Close session")
+            .onHover { hovering in
+                NSCursor.pointingHand.push()
+                if !hovering { NSCursor.pop() }
             }
         }
         .padding(.horizontal, 11)

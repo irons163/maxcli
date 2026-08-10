@@ -8,11 +8,7 @@ struct ContentView: View {
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             SidebarView { session in
-                if model.runtime(for: session.id)?.isRunning == true {
-                    closeCandidate = session
-                } else {
-                    model.close(session.id)
-                }
+                requestClose(session)
             }
         } detail: {
             workspace
@@ -48,6 +44,14 @@ struct ContentView: View {
         }
     }
 
+    private func requestClose(_ session: WorkspaceSession) {
+        if model.runtime(for: session.id)?.isRunning == true {
+            closeCandidate = session
+        } else {
+            model.close(session.id)
+        }
+    }
+
     @ViewBuilder
     private var workspace: some View {
         if model.sessions.isEmpty {
@@ -55,8 +59,10 @@ struct ContentView: View {
         } else if model.layoutMode == .grid {
             gridWorkspace
         } else if let session = model.selectedSession {
-            TerminalPane(session: session, compact: false)
-                .ignoresSafeArea(.container, edges: .bottom)
+            TerminalPane(session: session, compact: false) {
+                requestClose(session)
+            }
+            .ignoresSafeArea(.container, edges: .bottom)
         } else {
             ContentUnavailableView("Select a session", systemImage: "terminal")
         }
@@ -69,8 +75,10 @@ struct ContentView: View {
             ScrollView([.vertical, .horizontal]) {
                 LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
                     ForEach(model.visibleSessions) { session in
-                        TerminalPane(session: session, compact: true)
-                            .frame(minWidth: 330, minHeight: 270, idealHeight: 330)
+                        TerminalPane(session: session, compact: true) {
+                            requestClose(session)
+                        }
+                        .frame(minWidth: 330, minHeight: 270, idealHeight: 330)
                     }
                 }
                 .padding(12)
