@@ -189,6 +189,7 @@ final class AppModel: ObservableObject {
             workingDirectory: copy.workingDirectory,
             arguments: copy.arguments,
             customCommand: copy.customCommand,
+            iconName: copy.iconName,
             isPinned: copy.isPinned
         )
         addSession(copy)

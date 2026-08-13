@@ -97,7 +97,7 @@ struct ContentView: View {
         ToolbarItem(placement: .principal) {
             if let session = model.selectedSession {
                 HStack(spacing: 7) {
-                    Image(systemName: session.agent.symbolName)
+                    Image(systemName: session.symbolName)
                         .foregroundStyle(Color(nsColor: session.agent.color))
                     Text(session.title)
                         .fontWeight(.semibold)

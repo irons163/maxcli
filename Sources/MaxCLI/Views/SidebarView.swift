@@ -145,7 +145,7 @@ private struct SessionRow: View {
     var body: some View {
         HStack(spacing: 9) {
             ZStack(alignment: .bottomTrailing) {
-                Image(systemName: session.agent.symbolName)
+                Image(systemName: session.symbolName)
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(Color(nsColor: session.agent.color))
                     .frame(width: 30, height: 30)

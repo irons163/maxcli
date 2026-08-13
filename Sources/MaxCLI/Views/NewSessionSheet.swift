@@ -10,10 +10,18 @@ struct NewSessionSheet: View {
     @State private var workingDirectory = FileManager.default.homeDirectoryForCurrentUser.path
     @State private var arguments = ""
     @State private var customCommand = ""
+    @State private var iconName: String?
     @State private var pinSession = false
     @State private var titleWasEdited = false
 
     private let columns = [GridItem(.adaptive(minimum: 118), spacing: 8)]
+    private static let iconChoices = [
+        "sparkles", "brain.head.profile", "diamond", "cursorarrow.rays",
+        "chevron.left.forwardslash.chevron.right", "terminal", "sparkle",
+        "apple.terminal", "slider.horizontal.3", "wand.and.stars",
+        "bolt.fill", "star.fill", "flame.fill", "leaf.fill",
+        "gearshape.2.fill", "hammer.fill", "camera.fill", "gamecontroller.fill",
+    ]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -34,6 +42,16 @@ struct NewSessionSheet: View {
                 LazyVGrid(columns: columns, spacing: 8) {
                     ForEach(AgentKind.allCases) { item in
                         agentButton(item)
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Icon").font(.headline)
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 44), spacing: 8)], spacing: 8) {
+                    iconButton(nil, symbol: agent.symbolName, tint: agent.color, help: "Agent default")
+                    ForEach(Self.iconChoices, id: \.self) { symbol in
+                        iconButton(symbol, symbol: symbol, tint: nil, help: symbol)
                     }
                 }
             }
@@ -110,6 +128,22 @@ struct NewSessionSheet: View {
         .buttonStyle(.plain)
     }
 
+    private func iconButton(_ value: String?, symbol: String, tint: NSColor?, help: String) -> some View {
+        let isSelected = iconName == value
+        return Button {
+            iconName = value
+        } label: {
+            Image(systemName: symbol)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(tint.map { Color(nsColor: $0) } ?? Color.accentColor)
+                .frame(width: 44, height: 36)
+                .background(isSelected ? Color.accentColor.opacity(0.17) : Color.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(isSelected ? Color.accentColor.opacity(0.8) : .clear))
+        }
+        .buttonStyle(.plain)
+        .help(help)
+    }
+
     private var isValid: Bool {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && FileManager.default.fileExists(atPath: workingDirectory)
@@ -143,6 +177,7 @@ struct NewSessionSheet: View {
             workingDirectory: workingDirectory,
             arguments: arguments,
             customCommand: customCommand,
+            iconName: iconName,
             isPinned: pinSession
         )
         model.addSession(session)

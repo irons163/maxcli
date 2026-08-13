@@ -102,7 +102,7 @@ struct TerminalPane: View {
                 isWorking: model.workingSessionIDs.contains(session.id)
             )
 
-            Image(systemName: session.agent.symbolName)
+            Image(systemName: session.symbolName)
                 .foregroundStyle(Color(nsColor: session.agent.color))
 
             Text(session.title)

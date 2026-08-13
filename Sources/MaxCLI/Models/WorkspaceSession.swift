@@ -25,6 +25,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
     var workingDirectory: String
     var arguments: String
     var customCommand: String
+    var iconName: String?
     var isPinned: Bool
     var createdAt: Date
     var lastActivatedAt: Date
@@ -37,6 +38,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
         workingDirectory: String,
         arguments: String = "",
         customCommand: String = "",
+        iconName: String? = nil,
         isPinned: Bool = false,
         createdAt: Date = .now,
         lastActivatedAt: Date = .now,
@@ -48,6 +50,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
         self.workingDirectory = workingDirectory
         self.arguments = arguments
         self.customCommand = customCommand
+        self.iconName = iconName
         self.isPinned = isPinned
         self.createdAt = createdAt
         self.lastActivatedAt = lastActivatedAt
@@ -56,6 +59,10 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
 
     var directoryName: String {
         URL(fileURLWithPath: workingDirectory).lastPathComponent
+    }
+
+    var symbolName: String {
+        iconName ?? agent.symbolName
     }
 
     var launchCommand: String {
