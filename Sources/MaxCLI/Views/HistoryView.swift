@@ -82,23 +82,30 @@ struct HistoryView: View {
             transcriptDetail
         }
         .navigationTitle("opencode History")
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
+        .overlay(alignment: .topTrailing) {
+            HStack(spacing: 10) {
                 Button {
                     Task { await model.reload() }
                 } label: {
                     Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 14))
                 }
-                .help("Refresh")
-            }
-            ToolbarItem(placement: .primaryAction) {
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .help("更新")
+
                 Button {
                     dismiss()
                 } label: {
                     Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 16))
                 }
-                .help("Close (Esc)")
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .help("關閉 (Esc)")
             }
+            .padding(.top, 10)
+            .padding(.trailing, 12)
         }
         .task {
             await model.reload()
