@@ -8,9 +8,7 @@ enum AgentKind: String, Codable, CaseIterable, Identifiable, Sendable {
     case cursor
     case copilot
     case opencode
-    case aider
-    case goose
-    case amp
+    case grok
     case shell
     case custom
 
@@ -24,9 +22,7 @@ enum AgentKind: String, Codable, CaseIterable, Identifiable, Sendable {
         case .cursor: "Cursor Agent"
         case .copilot: "GitHub Copilot"
         case .opencode: "OpenCode"
-        case .aider: "Aider"
-        case .goose: "Goose"
-        case .amp: "Amp"
+        case .grok: "Grok"
         case .shell: "Shell"
         case .custom: "Custom"
         }
@@ -40,9 +36,7 @@ enum AgentKind: String, Codable, CaseIterable, Identifiable, Sendable {
         case .cursor: "agent"
         case .copilot: "copilot"
         case .opencode: "opencode"
-        case .aider: "aider"
-        case .goose: "goose"
-        case .amp: "amp"
+        case .grok: "grok"
         case .shell: ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"
         case .custom: ""
         }
@@ -56,9 +50,7 @@ enum AgentKind: String, Codable, CaseIterable, Identifiable, Sendable {
         case .cursor: "cursorarrow.rays"
         case .copilot: "chevron.left.forwardslash.chevron.right"
         case .opencode: "terminal"
-        case .aider: "wand.and.stars"
-        case .goose: "bird"
-        case .amp: "bolt.fill"
+        case .grok: "sparkle"
         case .shell: "apple.terminal"
         case .custom: "slider.horizontal.3"
         }
@@ -72,9 +64,7 @@ enum AgentKind: String, Codable, CaseIterable, Identifiable, Sendable {
         case .cursor: .systemPurple
         case .copilot: .systemIndigo
         case .opencode: .systemTeal
-        case .aider: .systemPink
-        case .goose: .systemYellow
-        case .amp: .systemRed
+        case .grok: .systemPink
         case .shell: .secondaryLabelColor
         case .custom: .systemGray
         }
@@ -88,9 +78,7 @@ enum AgentKind: String, Codable, CaseIterable, Identifiable, Sendable {
         case .cursor: "Install Cursor CLI"
         case .copilot: "Install GitHub Copilot CLI"
         case .opencode: "brew install anomalyco/tap/opencode"
-        case .aider: "pipx install aider-chat"
-        case .goose: "brew install block-goose-cli"
-        case .amp: "Install Amp CLI"
+        case .grok: "npm install -g @grok-ai/grok-cli"
         case .shell, .custom: ""
         }
     }

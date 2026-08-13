@@ -13,7 +13,7 @@ MaxCLI 是一個以 SwiftUI 製作的 macOS AI CLI 控制台。它把 Codex、Cl
 - 關閉後保存 session 設定；下次啟動可逐一或一次重新啟動，但不假裝能接回已不存在的程序。
 - 純本機運作，不上傳 terminal 內容。
 
-內建啟動設定：Codex、Claude Code、Gemini CLI、Cursor Agent、GitHub Copilot CLI、OpenCode、Aider、Goose、Amp、一般 Shell，以及任意自訂命令。
+內建啟動設定：Codex、Claude Code、Gemini CLI、Cursor Agent、GitHub Copilot CLI、OpenCode、Grok、一般 Shell，以及任意自訂命令。
 
 ## 開發與執行
 
