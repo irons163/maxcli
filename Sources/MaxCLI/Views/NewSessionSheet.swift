@@ -11,6 +11,7 @@ struct NewSessionSheet: View {
     @State private var arguments = ""
     @State private var customCommand = ""
     @State private var iconName: String?
+    @State private var iconColorName: String?
     @State private var pinSession = false
     @State private var titleWasEdited = false
 
@@ -52,6 +53,12 @@ struct NewSessionSheet: View {
                     iconButton(nil, symbol: agent.symbolName, tint: agent.color, help: "Agent default")
                     ForEach(Self.iconChoices, id: \.self) { symbol in
                         iconButton(symbol, symbol: symbol, tint: nil, help: symbol)
+                    }
+                }
+                HStack(spacing: 8) {
+                    colorButton(nil, color: agent.color, help: "Agent default")
+                    ForEach(WorkspaceSession.iconColorChoices, id: \.name) { choice in
+                        colorButton(choice.name, color: choice.color, help: choice.name)
                     }
                 }
             }
@@ -144,6 +151,22 @@ struct NewSessionSheet: View {
         .help(help)
     }
 
+    private func colorButton(_ value: String?, color: NSColor, help: String) -> some View {
+        let isSelected = iconColorName == value
+        return Button {
+            iconColorName = value
+        } label: {
+            Circle()
+                .fill(Color(nsColor: color))
+                .frame(width: 18, height: 18)
+                .overlay(Circle().stroke(.white.opacity(0.9), lineWidth: isSelected ? 2 : 0))
+                .frame(width: 30, height: 28)
+                .background(isSelected ? Color(nsColor: color).opacity(0.25) : Color.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+        .help(help)
+    }
+
     private var isValid: Bool {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && FileManager.default.fileExists(atPath: workingDirectory)
@@ -178,6 +201,7 @@ struct NewSessionSheet: View {
             arguments: arguments,
             customCommand: customCommand,
             iconName: iconName,
+            iconColorName: iconColorName,
             isPinned: pinSession
         )
         model.addSession(session)

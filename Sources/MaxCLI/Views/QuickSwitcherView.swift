@@ -43,7 +43,7 @@ struct QuickSwitcherView: View {
                                     isWorking: model.workingSessionIDs.contains(session.id)
                                 )
                                 Image(systemName: session.symbolName)
-                                    .foregroundStyle(Color(nsColor: session.agent.color))
+                                    .foregroundStyle(Color(nsColor: session.iconColor))
                                     .frame(width: 20)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(session.title)

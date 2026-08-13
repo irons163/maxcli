@@ -113,7 +113,7 @@ struct ContentView: View {
             if let session = model.selectedSession {
                 HStack(spacing: 7) {
                     Image(systemName: session.symbolName)
-                        .foregroundStyle(Color(nsColor: session.agent.color))
+                        .foregroundStyle(Color(nsColor: session.iconColor))
                     Text(session.title)
                         .fontWeight(.semibold)
                     Text("—")

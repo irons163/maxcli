@@ -208,6 +208,7 @@ final class AppModel: ObservableObject {
             arguments: copy.arguments,
             customCommand: copy.customCommand,
             iconName: copy.iconName,
+            iconColorName: copy.iconColorName,
             isPinned: copy.isPinned
         )
         addSession(copy)

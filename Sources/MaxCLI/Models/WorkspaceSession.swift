@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 enum SessionActivity: String, Codable, Sendable {
@@ -26,6 +27,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
     var arguments: String
     var customCommand: String
     var iconName: String?
+    var iconColorName: String?
     var isPinned: Bool
     var createdAt: Date
     var lastActivatedAt: Date
@@ -40,6 +42,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
         arguments: String = "",
         customCommand: String = "",
         iconName: String? = nil,
+        iconColorName: String? = nil,
         isPinned: Bool = false,
         createdAt: Date = .now,
         lastActivatedAt: Date = .now,
@@ -53,6 +56,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
         self.arguments = arguments
         self.customCommand = customCommand
         self.iconName = iconName
+        self.iconColorName = iconColorName
         self.isPinned = isPinned
         self.createdAt = createdAt
         self.lastActivatedAt = lastActivatedAt
@@ -66,6 +70,26 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
 
     var symbolName: String {
         iconName ?? agent.symbolName
+    }
+
+    var iconColor: NSColor {
+        guard let iconColorName else { return agent.color }
+        return Self.iconColorChoices.first { $0.name == iconColorName }?.color ?? agent.color
+    }
+
+    static var iconColorChoices: [(name: String, color: NSColor)] {
+        [
+            ("red", .systemRed),
+            ("orange", .systemOrange),
+            ("yellow", .systemYellow),
+            ("green", .systemGreen),
+            ("blue", .systemBlue),
+            ("purple", .systemPurple),
+            ("pink", .systemPink),
+            ("teal", .systemTeal),
+            ("indigo", .systemIndigo),
+            ("gray", .systemGray),
+        ]
     }
 
     var launchCommand: String {

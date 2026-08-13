@@ -103,7 +103,7 @@ struct TerminalPane: View {
             )
 
             Image(systemName: session.symbolName)
-                .foregroundStyle(Color(nsColor: session.agent.color))
+                .foregroundStyle(Color(nsColor: session.iconColor))
 
             Text(session.title)
                 .font(.system(size: 12, weight: .semibold))

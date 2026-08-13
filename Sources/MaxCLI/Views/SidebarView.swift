@@ -147,9 +147,9 @@ private struct SessionRow: View {
             ZStack(alignment: .bottomTrailing) {
                 Image(systemName: session.symbolName)
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(Color(nsColor: session.agent.color))
+                    .foregroundStyle(Color(nsColor: session.iconColor))
                     .frame(width: 30, height: 30)
-                    .background(Color(nsColor: session.agent.color).opacity(0.13), in: RoundedRectangle(cornerRadius: 7))
+                    .background(Color(nsColor: session.iconColor).opacity(0.13), in: RoundedRectangle(cornerRadius: 7))
 
                 StatusDot(
                     activity: session.activity,
