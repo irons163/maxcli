@@ -25,6 +25,7 @@ struct ContentView: View {
         }
         .sheet(isPresented: $model.isShowingHistory) {
             HistoryView()
+                .frame(minWidth: 1100, minHeight: 700)
         }
         .alert(
             "Close running session?",

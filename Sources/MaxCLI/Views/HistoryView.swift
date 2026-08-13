@@ -95,9 +95,9 @@ struct HistoryView: View {
                 Button {
                     dismiss()
                 } label: {
-                    Text("Done")
+                    Image(systemName: "xmark.circle.fill")
                 }
-                .help("Close history")
+                .help("Close (Esc)")
             }
         }
         .task {
@@ -227,15 +227,35 @@ private struct TranscriptView: View {
             VStack(alignment: .leading, spacing: 0) {
                 header
 
-                ForEach(transcript.messages) { message in
-                    MessageBlock(message: message)
+                ForEach(groups) { group in
+                    MessageBlock(role: group.role, parts: group.parts)
                 }
             }
             .padding(.vertical, 16)
-            .frame(maxWidth: 900, alignment: .leading)
+            .frame(maxWidth: 1100, alignment: .leading)
             .frame(maxWidth: .infinity)
         }
         .background(Color(nsColor: .textBackgroundColor))
+    }
+
+    private struct MessageGroup: Identifiable {
+        let id: String
+        let role: String
+        var parts: [OpenCodePart]
+    }
+
+    private var groups: [MessageGroup] {
+        var result: [MessageGroup] = []
+        for message in transcript.messages {
+            let parts = message.parts.filter(\.isDisplayable)
+            guard !parts.isEmpty else { continue }
+            if result.last?.role == message.role {
+                result[result.count - 1].parts.append(contentsOf: parts)
+            } else {
+                result.append(MessageGroup(id: message.id, role: message.role, parts: parts))
+            }
+        }
+        return result
     }
 
     private var header: some View {
@@ -262,24 +282,20 @@ private struct TranscriptView: View {
 }
 
 private struct MessageBlock: View {
-    let message: OpenCodeMessage
-
-    private var displayableParts: [OpenCodePart] {
-        message.parts.filter(\.isDisplayable)
-    }
+    let role: String
+    let parts: [OpenCodePart]
 
     var body: some View {
-        let parts = displayableParts
         let textParts = parts.filter { $0.kind == .text }
         let otherParts = parts.filter { $0.kind != .text }
-        if !parts.isEmpty || message.role == "user" {
+        if !parts.isEmpty || role == "user" {
             VStack(alignment: .leading, spacing: 8) {
                 if isUser {
                     Text("你")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                 } else {
-                    Text(message.role == "system" ? "System" : (message.role == "tool" ? "Tool" : "Assistant"))
+                    Text(role == "system" ? "System" : (role == "tool" ? "Tool" : "Assistant"))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                 }
@@ -303,7 +319,7 @@ private struct MessageBlock: View {
     }
 
     private var isUser: Bool {
-        message.role == "user"
+        role == "user"
     }
 }
 
