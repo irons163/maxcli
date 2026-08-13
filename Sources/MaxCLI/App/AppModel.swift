@@ -14,6 +14,7 @@ final class AppModel: ObservableObject {
     @Published var isShowingHistory = false
     @Published var sidebarVisible = true
     @Published private(set) var workingSessionIDs: Set<UUID> = []
+    @Published private(set) var firstPrompts: [UUID: String] = [:]
 
     private(set) var runtimes: [UUID: TerminalRuntime] = [:]
     let installedAgents: Set<AgentKind>
@@ -39,6 +40,12 @@ final class AppModel: ObservableObject {
                 self?.sampleOutputActivity()
             }
         }
+        Task { [weak self] in
+            while !Task.isCancelled {
+                self?.refreshFirstPrompts()
+                try? await Task.sleep(for: .seconds(5))
+            }
+        }
     }
 
     var selectedSession: WorkspaceSession? {
@@ -50,7 +57,9 @@ final class AppModel: ObservableObject {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         return sortedSessions.filter { session in
             let matchesAgent = agentFilter == nil || session.agent == agentFilter
-            let matchesSearch = query.isEmpty || session.searchableText.contains(query)
+            let matchesSearch = query.isEmpty
+                || session.searchableText.contains(query)
+                || (firstPrompts[session.id]?.lowercased().contains(query) ?? false)
             return matchesAgent && matchesSearch
         }
     }
@@ -264,6 +273,31 @@ final class AppModel: ObservableObject {
         }
         if working != workingSessionIDs {
             workingSessionIDs = working
+        }
+    }
+
+    private func refreshFirstPrompts() {
+        let directories = Array(Set(sessions.map(\.workingDirectory)))
+        Task.detached(priority: .utility) { [weak self] in
+            var promptsByDirectory: [String: String] = [:]
+            for directory in directories {
+                let prompt = (try? OpenCodeHistoryStore.firstUserPrompt(directory: directory)) ?? nil
+                promptsByDirectory[directory] = prompt ?? ""
+            }
+            await self?.applyFirstPrompts(promptsByDirectory)
+        }
+    }
+
+    @MainActor
+    private func applyFirstPrompts(_ promptsByDirectory: [String: String]) {
+        var map: [UUID: String] = [:]
+        for session in sessions {
+            if let prompt = promptsByDirectory[session.workingDirectory], !prompt.isEmpty {
+                map[session.id] = prompt
+            }
+        }
+        if map != firstPrompts {
+            firstPrompts = map
         }
     }
 

@@ -130,6 +130,56 @@ enum OpenCodeHistoryStore {
         }
     }
 
+    static func firstUserPrompt(directory: String) throws -> String? {
+        try withConnection { db in
+            let sessionSQL = """
+                SELECT id FROM session
+                WHERE directory = ? AND parent_id IS NULL
+                ORDER BY time_updated DESC
+                LIMIT 1
+                """
+            var sessionID: String?
+            try query(db, sql: sessionSQL, bindings: [directory]) { columns in
+                sessionID = columns[0]
+            }
+            guard let sessionID else { return nil }
+
+            var messageID: String?
+            let messageSQL = """
+                SELECT id, data FROM message
+                WHERE session_id = ?
+                ORDER BY time_created ASC, id ASC
+                """
+            try query(db, sql: messageSQL, bindings: [sessionID]) { columns in
+                guard messageID == nil,
+                      decodeJSON(columns[1])["role"] as? String == "user"
+                else { return }
+                messageID = columns[0]
+            }
+            guard let messageID else { return nil }
+
+            var text: String?
+            let partSQL = """
+                SELECT data FROM part
+                WHERE message_id = ?
+                ORDER BY time_created ASC, id ASC
+                """
+            try query(db, sql: partSQL, bindings: [messageID]) { columns in
+                guard text == nil else { return }
+                let data = decodeJSON(columns[0])
+                guard data["type"] as? String == "text",
+                      let value = data["text"] as? String,
+                      !(data["synthetic"] as? Bool ?? false),
+                      !(data["ignored"] as? Bool ?? false)
+                else { return }
+                text = value
+            }
+            return text.map {
+                $0.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+            }
+        }
+    }
+
     // MARK: - Parsing
 
     private static func parsePart(id: String, data: String?) -> OpenCodePart {

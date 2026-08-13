@@ -170,9 +170,15 @@ private struct SessionRow: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                if let preview = model.firstPrompts[session.id] {
+                    Text(preview)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
                 Text("\(session.agent.displayName) · \(session.directoryName)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
                     .lineLimit(1)
             }
 
