@@ -23,6 +23,9 @@ struct ContentView: View {
             QuickSwitcherView()
                 .environmentObject(model)
         }
+        .sheet(isPresented: $model.isShowingHistory) {
+            HistoryView()
+        }
         .alert(
             "Close running session?",
             isPresented: Binding(
@@ -107,6 +110,13 @@ struct ContentView: View {
         }
 
         ToolbarItemGroup {
+            Button {
+                model.isShowingHistory = true
+            } label: {
+                Image(systemName: "clock.arrow.circlepath")
+            }
+            .help("opencode History (⌘⇧H)")
+
             Button {
                 model.isShowingQuickSwitcher = true
             } label: {

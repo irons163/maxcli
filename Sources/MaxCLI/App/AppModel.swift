@@ -11,6 +11,7 @@ final class AppModel: ObservableObject {
     @Published var agentFilter: AgentKind?
     @Published var isShowingNewSession = false
     @Published var isShowingQuickSwitcher = false
+    @Published var isShowingHistory = false
     @Published var sidebarVisible = true
 
     private(set) var runtimes: [UUID: TerminalRuntime] = [:]

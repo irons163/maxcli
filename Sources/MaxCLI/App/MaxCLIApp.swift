@@ -25,6 +25,15 @@ struct MaxCLIApp: App {
                 }
                 .keyboardShortcut("k")
 
+                Divider()
+
+                Button("opencode History…") {
+                    model.isShowingHistory = true
+                }
+                .keyboardShortcut("h", modifiers: [.command, .shift])
+
+                Divider()
+
                 Button("Previous Session") {
                     model.selectNext(offset: -1)
                 }
