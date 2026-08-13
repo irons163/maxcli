@@ -60,6 +60,8 @@ struct ContentView: View {
     private var workspace: some View {
         if model.sessions.isEmpty {
             EmptyWorkspaceView()
+        } else if model.layoutMode == .active {
+            activeWorkspace
         } else if model.layoutMode == .grid {
             gridWorkspace
         } else if let session = model.selectedSession {
@@ -72,13 +74,26 @@ struct ContentView: View {
         }
     }
 
+    @ViewBuilder
+    private var activeWorkspace: some View {
+        if model.activeSessions.isEmpty {
+            ContentUnavailableView("No active sessions", systemImage: "bolt.slash")
+        } else {
+            gridWorkspace(sessions: model.activeSessions)
+        }
+    }
+
     private var gridWorkspace: some View {
+        gridWorkspace(sessions: model.visibleSessions)
+    }
+
+    private func gridWorkspace(sessions: [WorkspaceSession]) -> some View {
         GeometryReader { proxy in
             let count = proxy.size.width > 1120 ? 3 : (proxy.size.width > 700 ? 2 : 1)
             let columns = Array(repeating: GridItem(.flexible(minimum: 330), spacing: 12), count: count)
             ScrollView([.vertical, .horizontal]) {
                 LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
-                    ForEach(model.visibleSessions) { session in
+                    ForEach(sessions) { session in
                         TerminalPane(session: session, compact: true) {
                             requestClose(session)
                         }
@@ -132,8 +147,8 @@ struct ContentView: View {
                 }
             }
             .pickerStyle(.segmented)
-            .frame(width: 86)
-            .help("Focus or grid layout")
+            .frame(width: 122)
+            .help("Focus, grid or active layout")
 
             Button {
                 model.isShowingNewSession = true

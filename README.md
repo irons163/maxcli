@@ -5,7 +5,7 @@ MaxCLI 是一個以 SwiftUI 製作的 macOS AI CLI 控制台。它把 Codex、Cl
 ## 目前功能
 
 - 每個 session 有獨立 PTY、工作目錄、CLI 與啟動參數；切換畫面不會停止程序。
-- Focus 模式專心操作一個終端；Grid 模式同時監看多個終端。
+- Focus 模式專心操作一個終端；Grid 模式同時監看多個終端；Active 模式只顯示進行中的 session，且左側 sidebar 改以「最新 update」排序，有新輸出的 session 自動浮到最上方。
 - 緊湊 sidebar 顯示 Running、Attention、Total，支援搜尋、agent 篩選、釘選與右鍵操作。
 - `⌘1`…`⌘9` 固定快速切換前九個 session，`⌘K` 依最近使用順序搜尋全部 session。
 - 可複製 session，在同一 repo 快速開第二或第三個 agent。
@@ -47,13 +47,13 @@ MaxCLI 不啟用 App Sandbox，因為 child process 必須能存取你指定的 
 | `⌘D` | 複製目前 session |
 | `⌘⇧R` | 重啟目前 session |
 | `⌘⇧.` | 停止目前 session |
-| `⌘⇧G` | Focus / Grid 切換 |
+| `⌘⇧G` | Focus / Grid / Active 切換 |
 
 ## 十幾個 session 的建議用法
 
 1. 用 repository 與任務命名，例如 `api · review`、`web · tests`，不要只叫 `Claude 1`。
 2. 長期主線釘選在最上方；前九個位置會保持穩定，適合建立肌肉記憶。
-3. 平時用 Focus，等待 agent 時切 Grid；橘色/紅色邊框只處理需要注意的 session。
+3. 平時用 Focus，等待 agent 時切 Grid；Agent 有動靜時切 Active，最新更新的 session 會排在 sidebar 最上面；橘色/紅色邊框只處理需要注意的 session。
 4. 同一個 repo 要平行處理時先 Duplicate，再更換名稱或 CLI；每個 session 仍是獨立程序。
 
 更完整的互動與架構取捨在 [docs/DESIGN.md](docs/DESIGN.md)。

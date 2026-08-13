@@ -22,6 +22,7 @@ final class AppModel: ObservableObject {
     private var manuallyStopping = Set<UUID>()
     private var runtimeGenerations: [UUID: UUID] = [:]
     private var pendingOutputBytes: [UUID: Int] = [:]
+    private var pendingActivityAt: [UUID: Date] = [:]
     private var outputHistory: [UUID: [Int]] = [:]
     private var idleTicks: [UUID: Int] = [:]
     private var lastUserInputAt: [UUID: Date] = [:]
@@ -72,7 +73,24 @@ final class AppModel: ObservableObject {
     var sortedSessions: [WorkspaceSession] {
         sessions.sorted { lhs, rhs in
             if lhs.isPinned != rhs.isPinned { return lhs.isPinned }
-            return lhs.createdAt < rhs.createdAt
+            switch layoutMode {
+            case .active:
+                let lhsTime = lhs.lastActivityAt ?? lhs.lastActivatedAt
+                let rhsTime = rhs.lastActivityAt ?? rhs.lastActivatedAt
+                if lhsTime != rhsTime { return lhsTime > rhsTime }
+                return lhs.createdAt < rhs.createdAt
+            case .focus, .grid:
+                return lhs.createdAt < rhs.createdAt
+            }
+        }
+    }
+
+    var activeSessions: [WorkspaceSession] {
+        sortedSessions.filter { session in
+            switch session.activity {
+            case .launching, .running, .attention: true
+            case .stopped, .failed: false
+            }
         }
     }
 
@@ -226,20 +244,23 @@ final class AppModel: ObservableObject {
         NSPasteboard.general.setString(command, forType: .string)
     }
 
-    private func handle(_ event: TerminalRuntimeEvent, for id: UUID) {
+    func handle(_ event: TerminalRuntimeEvent, for id: UUID) {
         guard session(id) != nil else { return }
         switch event {
         case .started:
+            updateSession(id) { $0.lastActivityAt = .now }
             guard sessions.first(where: { $0.id == id })?.activity == .launching else { return }
             updateSession(id) { $0.activity = .running }
         case let .output(bytes):
             pendingOutputBytes[id, default: 0] += bytes
+            pendingActivityAt[id] = .now
             guard sessions.first(where: { $0.id == id })?.activity == .launching else { return }
             updateSession(id) { $0.activity = .running }
         case .userInput:
             lastUserInputAt[id] = .now
             return
         case .bell:
+            updateSession(id) { $0.lastActivityAt = .now }
             guard selectedSessionID != id else { return }
             updateSession(id) { $0.activity = .attention }
             NSSound(named: "Glass")?.play()
@@ -251,9 +272,11 @@ final class AppModel: ObservableObject {
         case let .terminated(exitCode):
             let wasManual = manuallyStopping.remove(id) != nil
             pendingOutputBytes[id] = nil
+            pendingActivityAt[id] = nil
             outputHistory[id] = nil
             lastUserInputAt[id] = nil
             updateSession(id) { session in
+                session.lastActivityAt = .now
                 if wasManual {
                     session.activity = .stopped
                 } else if exitCode == 0 {
@@ -270,6 +293,10 @@ final class AppModel: ObservableObject {
     }
 
     private func sampleOutputActivity() {
+        for (id, date) in pendingActivityAt {
+            updateSession(id) { $0.lastActivityAt = date }
+        }
+        pendingActivityAt.removeAll()
         var working = workingSessionIDs
         for (id, runtime) in runtimes where runtime.isRunning {
             let bytes = pendingOutputBytes[id] ?? 0

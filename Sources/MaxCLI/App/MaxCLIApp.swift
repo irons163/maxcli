@@ -85,8 +85,8 @@ struct MaxCLIApp: App {
 
                 Divider()
 
-                Button("Toggle Grid") {
-                    model.layoutMode = model.layoutMode == .focus ? .grid : .focus
+                Button("Cycle Layout") {
+                    model.layoutMode = model.layoutMode.next
                 }
                 .keyboardShortcut("g", modifiers: [.command, .shift])
             }

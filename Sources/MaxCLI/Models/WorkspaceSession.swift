@@ -29,6 +29,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
     var isPinned: Bool
     var createdAt: Date
     var lastActivatedAt: Date
+    var lastActivityAt: Date?
     var activity: SessionActivity
 
     init(
@@ -42,6 +43,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
         isPinned: Bool = false,
         createdAt: Date = .now,
         lastActivatedAt: Date = .now,
+        lastActivityAt: Date? = nil,
         activity: SessionActivity = .launching
     ) {
         self.id = id
@@ -54,6 +56,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
         self.isPinned = isPinned
         self.createdAt = createdAt
         self.lastActivatedAt = lastActivatedAt
+        self.lastActivityAt = lastActivityAt
         self.activity = activity
     }
 
