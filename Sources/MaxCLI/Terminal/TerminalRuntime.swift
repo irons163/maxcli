@@ -6,6 +6,7 @@ enum TerminalRuntimeEvent {
     case started
     case output(Int)
     case userInput
+    case focus(Bool)
     case bell
     case title(String)
     case directory(String)
@@ -25,7 +26,13 @@ final class ManagedTerminalView: LocalProcessTerminalView {
 
     override func send(source: Terminal, data: ArraySlice<UInt8>) {
         super.send(source: source, data: data)
-        eventHandler?(.userInput)
+        if data == [0x1b, 0x5b, 0x49] || data == [0x9b, 0x49] {
+            eventHandler?(.focus(true))
+        } else if data == [0x1b, 0x5b, 0x4f] || data == [0x9b, 0x4f] {
+            eventHandler?(.focus(false))
+        } else {
+            eventHandler?(.userInput)
+        }
     }
 }
 
@@ -97,7 +104,8 @@ final class TerminalRuntime: NSObject, @preconcurrency LocalProcessTerminalViewD
     }
 
     func focus() {
-        terminalView.window?.makeFirstResponder(terminalView)
+        guard let window = terminalView.window, window.firstResponder !== terminalView else { return }
+        window.makeFirstResponder(terminalView)
     }
 
     func sizeChanged(source: LocalProcessTerminalView, newCols: Int, newRows: Int) {}

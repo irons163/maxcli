@@ -115,4 +115,46 @@ final class AppModelTests: XCTestCase {
 
         XCTAssertEqual(model.sortedSessions.map(\.title), ["First", "Second"])
     }
+
+    func testOutputCountsAsUpdate() throws {
+        let (model, defaults, suite) = try makeModel()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        model.addSession(makeSession(title: "First"))
+        let id = model.sessions[0].id
+        let baseline = try XCTUnwrap(model.sessions[0].lastActivityAt)
+
+        model.handle(.output(100), for: id)
+        model.sampleOutputActivity()
+
+        let updated = try XCTUnwrap(model.sessions[0].lastActivityAt)
+        XCTAssertGreaterThan(updated, baseline)
+    }
+
+    func testFocusDoesNotCountAsUpdate() throws {
+        let (model, defaults, suite) = try makeModel()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        model.addSession(makeSession(title: "First"))
+        let id = model.sessions[0].id
+        let baseline = model.sessions[0].lastActivityAt
+
+        model.handle(.output(100), for: id)
+        model.handle(.focus(true), for: id)
+        model.sampleOutputActivity()
+
+        XCTAssertEqual(model.sessions[0].lastActivityAt, baseline)
+    }
+
+    func testTypingDoesNotCountAsUpdate() throws {
+        let (model, defaults, suite) = try makeModel()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        model.addSession(makeSession(title: "First"))
+        let id = model.sessions[0].id
+        let baseline = model.sessions[0].lastActivityAt
+
+        model.handle(.output(100), for: id)
+        model.handle(.userInput, for: id)
+        model.sampleOutputActivity()
+
+        XCTAssertEqual(model.sessions[0].lastActivityAt, baseline)
+    }
 }

@@ -19,10 +19,12 @@ final class AppModel: ObservableObject {
     private(set) var runtimes: [UUID: TerminalRuntime] = [:]
     let installedAgents: Set<AgentKind>
     private let persistence: SessionPersistence
+    private var cancellables = Set<AnyCancellable>()
     private var manuallyStopping = Set<UUID>()
     private var runtimeGenerations: [UUID: UUID] = [:]
     private var pendingOutputBytes: [UUID: Int] = [:]
     private var pendingActivityAt: [UUID: Date] = [:]
+    private var lastFocusAt: [UUID: Date] = [:]
     private var outputHistory: [UUID: [Int]] = [:]
     private var idleTicks: [UUID: Int] = [:]
     private var lastUserInputAt: [UUID: Date] = [:]
@@ -30,6 +32,7 @@ final class AppModel: ObservableObject {
     private static let idleByteThreshold = 100
     private static let idleTickLimit = 4
     private static let userInteractionGrace: TimeInterval = 1.5
+    private static let focusGrace: TimeInterval = 2.0
 
     init(
         persistence: SessionPersistence = SessionPersistence(),
@@ -40,6 +43,10 @@ final class AppModel: ObservableObject {
         self.installedAgents = executableLocator.installedAgents
         self.sessions = restoredSessions
         self.selectedSessionID = restoredSessions.first?.id
+        $sessions
+            .sink { [weak self] _ in self?.updateDockBadge() }
+            .store(in: &cancellables)
+        updateDockBadge()
         Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(0.6))
@@ -100,6 +107,11 @@ final class AppModel: ObservableObject {
 
     var attentionCount: Int {
         sessions.filter { $0.activity == .attention || $0.activity == .failed }.count
+    }
+
+    private func updateDockBadge() {
+        let count = attentionCount
+        NSApp?.dockTile.badgeLabel = count > 0 ? "\(count)" : ""
     }
 
     func runtime(for sessionID: UUID) -> TerminalRuntime? {
@@ -260,6 +272,9 @@ final class AppModel: ObservableObject {
         case .userInput:
             lastUserInputAt[id] = .now
             return
+        case .focus:
+            lastFocusAt[id] = .now
+            return
         case .bell:
             updateSession(id) { $0.lastActivityAt = .now }
             guard selectedSessionID != id else { return }
@@ -274,6 +289,7 @@ final class AppModel: ObservableObject {
             let wasManual = manuallyStopping.remove(id) != nil
             pendingOutputBytes[id] = nil
             pendingActivityAt[id] = nil
+            lastFocusAt[id] = nil
             outputHistory[id] = nil
             lastUserInputAt[id] = nil
             updateSession(id) { session in
@@ -293,9 +309,17 @@ final class AppModel: ObservableObject {
         persist()
     }
 
-    private func sampleOutputActivity() {
+    func sampleOutputActivity() {
         for (id, date) in pendingActivityAt {
-            updateSession(id) { $0.lastActivityAt = date }
+            let recentlyFocused = lastFocusAt[id].map {
+                date.timeIntervalSince($0) < Self.focusGrace
+            } ?? false
+            let interacting = lastUserInputAt[id].map {
+                date.timeIntervalSince($0) < Self.userInteractionGrace
+            } ?? false
+            if !recentlyFocused, !interacting {
+                updateSession(id) { $0.lastActivityAt = date }
+            }
         }
         pendingActivityAt.removeAll()
         var working = workingSessionIDs
