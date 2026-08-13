@@ -23,7 +23,10 @@ final class AppModel: ObservableObject {
     private var runtimeGenerations: [UUID: UUID] = [:]
     private var pendingOutputBytes: [UUID: Int] = [:]
     private var outputHistory: [UUID: [Int]] = [:]
-    private static let workingByteThreshold = 600
+    private var idleTicks: [UUID: Int] = [:]
+    private static let workingByteThreshold = 400
+    private static let idleByteThreshold = 100
+    private static let idleTickLimit = 4
 
     init(
         persistence: SessionPersistence = SessionPersistence(),
@@ -260,16 +263,31 @@ final class AppModel: ObservableObject {
     }
 
     private func sampleOutputActivity() {
-        var working = Set<UUID>()
+        var working = workingSessionIDs
         for (id, runtime) in runtimes where runtime.isRunning {
             var history = outputHistory[id] ?? []
             history.append(pendingOutputBytes[id] ?? 0)
             if history.count > 3 { history.removeFirst(history.count - 3) }
             outputHistory[id] = history
             pendingOutputBytes[id] = 0
-            if history.reduce(0, +) >= Self.workingByteThreshold {
+            let recentBytes = history.reduce(0, +)
+            if working.contains(id) {
+                if recentBytes < Self.idleByteThreshold {
+                    let ticks = (idleTicks[id] ?? 0) + 1
+                    idleTicks[id] = ticks
+                    if ticks >= Self.idleTickLimit {
+                        working.remove(id)
+                        idleTicks[id] = nil
+                    }
+                } else {
+                    idleTicks[id] = 0
+                }
+            } else if recentBytes >= Self.workingByteThreshold {
                 working.insert(id)
             }
+        }
+        for id in idleTicks.keys where runtimes[id]?.isRunning != true {
+            idleTicks[id] = nil
         }
         if working != workingSessionIDs {
             workingSessionIDs = working
