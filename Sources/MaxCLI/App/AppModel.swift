@@ -24,9 +24,11 @@ final class AppModel: ObservableObject {
     private var pendingOutputBytes: [UUID: Int] = [:]
     private var outputHistory: [UUID: [Int]] = [:]
     private var idleTicks: [UUID: Int] = [:]
+    private var lastUserInputAt: [UUID: Date] = [:]
     private static let workingByteThreshold = 400
     private static let idleByteThreshold = 100
     private static let idleTickLimit = 4
+    private static let userInteractionGrace: TimeInterval = 1.5
 
     init(
         persistence: SessionPersistence = SessionPersistence(),
@@ -233,6 +235,9 @@ final class AppModel: ObservableObject {
             pendingOutputBytes[id, default: 0] += bytes
             guard sessions.first(where: { $0.id == id })?.activity == .launching else { return }
             updateSession(id) { $0.activity = .running }
+        case .userInput:
+            lastUserInputAt[id] = .now
+            return
         case .bell:
             guard selectedSessionID != id else { return }
             updateSession(id) { $0.activity = .attention }
@@ -246,6 +251,7 @@ final class AppModel: ObservableObject {
             let wasManual = manuallyStopping.remove(id) != nil
             pendingOutputBytes[id] = nil
             outputHistory[id] = nil
+            lastUserInputAt[id] = nil
             updateSession(id) { session in
                 if wasManual {
                     session.activity = .stopped
@@ -265,11 +271,19 @@ final class AppModel: ObservableObject {
     private func sampleOutputActivity() {
         var working = workingSessionIDs
         for (id, runtime) in runtimes where runtime.isRunning {
+            let bytes = pendingOutputBytes[id] ?? 0
+            pendingOutputBytes[id] = 0
+            let interacting = lastUserInputAt[id].map {
+                Date().timeIntervalSince($0) < Self.userInteractionGrace
+            } ?? false
+            if interacting {
+                outputHistory[id] = []
+                continue
+            }
             var history = outputHistory[id] ?? []
-            history.append(pendingOutputBytes[id] ?? 0)
+            history.append(bytes)
             if history.count > 3 { history.removeFirst(history.count - 3) }
             outputHistory[id] = history
-            pendingOutputBytes[id] = 0
             let recentBytes = history.reduce(0, +)
             if working.contains(id) {
                 if recentBytes < Self.idleByteThreshold {
