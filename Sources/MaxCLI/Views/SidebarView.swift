@@ -140,6 +140,7 @@ private struct SessionRow: View {
     let session: WorkspaceSession
     let isSelected: Bool
     let shortcutIndex: Int?
+    @EnvironmentObject private var model: AppModel
 
     var body: some View {
         HStack(spacing: 9) {
@@ -150,7 +151,10 @@ private struct SessionRow: View {
                     .frame(width: 30, height: 30)
                     .background(Color(nsColor: session.agent.color).opacity(0.13), in: RoundedRectangle(cornerRadius: 7))
 
-                StatusDot(activity: session.activity)
+                StatusDot(
+                    activity: session.activity,
+                    isWorking: model.workingSessionIDs.contains(session.id)
+                )
                     .overlay(Circle().stroke(.background, lineWidth: 2))
                     .offset(x: 2, y: 2)
             }

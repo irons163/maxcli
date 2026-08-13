@@ -13,7 +13,7 @@ final class TerminalRuntimeTests: XCTestCase {
             switch event {
             case .started:
                 observedStarted = true
-            case .output:
+            case .output(_):
                 observedOutput = true
             case let .terminated(code):
                 observedExitCode = code

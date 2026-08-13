@@ -13,12 +13,16 @@ final class AppModel: ObservableObject {
     @Published var isShowingQuickSwitcher = false
     @Published var isShowingHistory = false
     @Published var sidebarVisible = true
+    @Published private(set) var workingSessionIDs: Set<UUID> = []
 
     private(set) var runtimes: [UUID: TerminalRuntime] = [:]
     let installedAgents: Set<AgentKind>
     private let persistence: SessionPersistence
     private var manuallyStopping = Set<UUID>()
     private var runtimeGenerations: [UUID: UUID] = [:]
+    private var pendingOutputBytes: [UUID: Int] = [:]
+    private var outputHistory: [UUID: [Int]] = [:]
+    private static let workingByteThreshold = 600
 
     init(
         persistence: SessionPersistence = SessionPersistence(),
@@ -29,6 +33,12 @@ final class AppModel: ObservableObject {
         self.installedAgents = executableLocator.installedAgents
         self.sessions = restoredSessions
         self.selectedSessionID = restoredSessions.first?.id
+        Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(0.6))
+                self?.sampleOutputActivity()
+            }
+        }
     }
 
     var selectedSession: WorkspaceSession? {
@@ -204,7 +214,11 @@ final class AppModel: ObservableObject {
     private func handle(_ event: TerminalRuntimeEvent, for id: UUID) {
         guard session(id) != nil else { return }
         switch event {
-        case .started, .output:
+        case .started:
+            guard sessions.first(where: { $0.id == id })?.activity == .launching else { return }
+            updateSession(id) { $0.activity = .running }
+        case let .output(bytes):
+            pendingOutputBytes[id, default: 0] += bytes
             guard sessions.first(where: { $0.id == id })?.activity == .launching else { return }
             updateSession(id) { $0.activity = .running }
         case .bell:
@@ -218,6 +232,8 @@ final class AppModel: ObservableObject {
             break
         case let .terminated(exitCode):
             let wasManual = manuallyStopping.remove(id) != nil
+            pendingOutputBytes[id] = nil
+            outputHistory[id] = nil
             updateSession(id) { session in
                 if wasManual {
                     session.activity = .stopped
@@ -232,6 +248,23 @@ final class AppModel: ObservableObject {
             }
         }
         persist()
+    }
+
+    private func sampleOutputActivity() {
+        var working = Set<UUID>()
+        for (id, runtime) in runtimes where runtime.isRunning {
+            var history = outputHistory[id] ?? []
+            history.append(pendingOutputBytes[id] ?? 0)
+            if history.count > 3 { history.removeFirst(history.count - 3) }
+            outputHistory[id] = history
+            pendingOutputBytes[id] = 0
+            if history.reduce(0, +) >= Self.workingByteThreshold {
+                working.insert(id)
+            }
+        }
+        if working != workingSessionIDs {
+            workingSessionIDs = working
+        }
     }
 
     private func session(_ id: UUID) -> WorkspaceSession? {

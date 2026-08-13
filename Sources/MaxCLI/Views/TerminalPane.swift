@@ -97,7 +97,10 @@ struct TerminalPane: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            StatusDot(activity: session.activity)
+            StatusDot(
+                activity: session.activity,
+                isWorking: model.workingSessionIDs.contains(session.id)
+            )
 
             Image(systemName: session.agent.symbolName)
                 .foregroundStyle(Color(nsColor: session.agent.color))

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct StatusDot: View {
     let activity: SessionActivity
+    var isWorking = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var color: Color {
@@ -16,7 +17,7 @@ struct StatusDot: View {
 
     var body: some View {
         ZStack {
-            if activity == .running, !reduceMotion {
+            if isWorking, !reduceMotion {
                 Circle()
                     .stroke(color.opacity(0.3), lineWidth: 2.5)
                 TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
@@ -33,7 +34,7 @@ struct StatusDot: View {
             }
         }
         .frame(width: 11, height: 11)
-        .shadow(color: activity == .running ? color.opacity(0.6) : .clear, radius: 3)
+        .shadow(color: isWorking ? color.opacity(0.6) : .clear, radius: 3)
         .accessibilityLabel(activity.label)
     }
 }

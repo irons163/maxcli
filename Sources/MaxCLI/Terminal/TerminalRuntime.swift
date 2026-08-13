@@ -4,7 +4,7 @@ import SwiftTerm
 
 enum TerminalRuntimeEvent {
     case started
-    case output
+    case output(Int)
     case bell
     case title(String)
     case directory(String)
@@ -16,7 +16,7 @@ final class ManagedTerminalView: LocalProcessTerminalView {
 
     override func dataReceived(slice: ArraySlice<UInt8>) {
         super.dataReceived(slice: slice)
-        eventHandler?(.output)
+        eventHandler?(.output(slice.count))
         if slice.contains(7) {
             eventHandler?(.bell)
         }
