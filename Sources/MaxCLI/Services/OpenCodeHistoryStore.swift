@@ -132,17 +132,7 @@ enum OpenCodeHistoryStore {
 
     static func firstUserPrompt(directory: String) throws -> String? {
         try withConnection { db in
-            let sessionSQL = """
-                SELECT id FROM session
-                WHERE directory = ? AND parent_id IS NULL
-                ORDER BY time_updated DESC
-                LIMIT 1
-                """
-            var sessionID: String?
-            try query(db, sql: sessionSQL, bindings: [directory]) { columns in
-                sessionID = columns[0]
-            }
-            guard let sessionID else { return nil }
+            guard let sessionID = try latestSessionID(db: db, directory: directory) else { return nil }
 
             var messageID: String?
             let messageSQL = """
@@ -178,6 +168,26 @@ enum OpenCodeHistoryStore {
                 $0.split(whereSeparator: \.isWhitespace).joined(separator: " ")
             }
         }
+    }
+
+    static func latestSessionID(directory: String) throws -> String? {
+        try withConnection { db in
+            try latestSessionID(db: db, directory: directory)
+        }
+    }
+
+    private static func latestSessionID(db: OpaquePointer, directory: String) throws -> String? {
+        let sessionSQL = """
+            SELECT id FROM session
+            WHERE directory = ? AND parent_id IS NULL
+            ORDER BY time_updated DESC
+            LIMIT 1
+            """
+        var sessionID: String?
+        try query(db, sql: sessionSQL, bindings: [directory]) { columns in
+            sessionID = columns[0]
+        }
+        return sessionID
     }
 
     // MARK: - Parsing

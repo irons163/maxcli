@@ -145,12 +145,14 @@ final class AppModel: ObservableObject {
     }
 
     func start(_ id: UUID) {
-        guard let session = session(id) else { return }
+        guard let current = session(id) else { return }
         if runtimes[id]?.isRunning == true {
             select(id)
             return
         }
 
+        autoBindOpenCodeSessionIfNeeded(id)
+        guard let latestSession = session(id) else { return }
         runtimes[id] = nil
         updateSession(id) { $0.activity = .launching }
         let generation = UUID()
@@ -160,7 +162,7 @@ final class AppModel: ObservableObject {
             self?.handle(event, for: sessionID)
         }
         runtimes[id] = runtime
-        runtime.start(session: session)
+        runtime.start(session: latestSession)
         persist()
     }
 
@@ -250,6 +252,16 @@ final class AppModel: ObservableObject {
 
     func bindOpenCodeSession(_ id: UUID, to opencodeSessionID: String?) {
         updateSession(id) { $0.opencodeSessionID = opencodeSessionID }
+        persist()
+    }
+
+    private func autoBindOpenCodeSessionIfNeeded(_ id: UUID) {
+        guard let session = session(id),
+              session.agent == .opencode,
+              session.opencodeSessionID == nil
+        else { return }
+        guard let latestID = try? OpenCodeHistoryStore.latestSessionID(directory: session.workingDirectory) else { return }
+        updateSession(id) { $0.opencodeSessionID = latestID }
         persist()
     }
 
