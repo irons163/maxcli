@@ -4,6 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "MaxCLI",
+    defaultLocalization: "en",
     platforms: [
         .macOS(.v14)
     ],
@@ -17,7 +18,10 @@ let package = Package(
         .executableTarget(
             name: "MaxCLI",
             dependencies: ["SwiftTerm"],
-            path: "Sources/MaxCLI"
+            path: "Sources/MaxCLI",
+            resources: [
+                .process("Resources")
+            ]
         ),
         .testTarget(
             name: "MaxCLITests",

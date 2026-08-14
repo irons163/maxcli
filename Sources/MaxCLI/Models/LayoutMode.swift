@@ -6,11 +6,11 @@ enum LayoutMode: String, Codable, CaseIterable, Identifiable {
     case active
 
     var id: String { rawValue }
-    var title: String {
+    var titleKey: String {
         switch self {
-        case .focus: "Focus"
-        case .grid: "Grid"
-        case .active: "Active"
+        case .focus: "menu.layout.focus"
+        case .grid: "menu.layout.grid"
+        case .active: "menu.layout.active"
         }
     }
     var symbolName: String {

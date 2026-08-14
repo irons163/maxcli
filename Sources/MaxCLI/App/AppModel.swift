@@ -13,8 +13,10 @@ final class AppModel: ObservableObject {
     @Published var isShowingQuickSwitcher = false
     @Published var isShowingHistory = false
     @Published var sidebarVisible = true
+    @Published var language: AppLanguage
     @Published private(set) var workingSessionIDs: Set<UUID> = []
     @Published private(set) var firstPrompts: [UUID: String] = [:]
+    @Published private(set) var recentSessionsByDirectory: [String: [OpenCodeHistorySession]] = [:]
 
     private(set) var runtimes: [UUID: TerminalRuntime] = [:]
     let installedAgents: Set<AgentKind>
@@ -33,6 +35,15 @@ final class AppModel: ObservableObject {
     private static let idleTickLimit = 4
     private static let userInteractionGrace: TimeInterval = 1.5
     private static let focusGrace: TimeInterval = 2.0
+    private static let languageKey = "maxcli.language.v1"
+
+    func tr(_ key: String, _ comment: String = "") -> String {
+        NSLocalizedString(key, bundle: language.bundle, comment: comment)
+    }
+
+    func trf(_ key: String, _ arguments: CVarArg...) -> String {
+        String(format: NSLocalizedString(key, bundle: language.bundle, comment: ""), arguments: arguments)
+    }
 
     init(
         persistence: SessionPersistence = SessionPersistence(),
@@ -43,6 +54,12 @@ final class AppModel: ObservableObject {
         self.installedAgents = executableLocator.installedAgents
         self.sessions = restoredSessions
         self.selectedSessionID = restoredSessions.first?.id
+        let storedLanguage = UserDefaults.standard.string(forKey: Self.languageKey)
+            .flatMap(AppLanguage.init(rawValue:))
+        self.language = storedLanguage ?? .system
+        $language
+            .sink { language in UserDefaults.standard.setValue(language.rawValue, forKey: Self.languageKey) }
+            .store(in: &cancellables)
         $sessions
             .sink { [weak self] _ in self?.updateDockBadge() }
             .store(in: &cancellables)
@@ -231,6 +248,11 @@ final class AppModel: ObservableObject {
         persist()
     }
 
+    func bindOpenCodeSession(_ id: UUID, to opencodeSessionID: String?) {
+        updateSession(id) { $0.opencodeSessionID = opencodeSessionID }
+        persist()
+    }
+
     func stopAll() {
         for session in sessions where runtimes[session.id]?.isRunning == true {
             stop(session.id)
@@ -369,12 +391,28 @@ final class AppModel: ObservableObject {
                 let prompt = (try? OpenCodeHistoryStore.firstUserPrompt(directory: directory)) ?? nil
                 promptsByDirectory[directory] = prompt ?? ""
             }
-            await self?.applyFirstPrompts(promptsByDirectory)
+            let recentSessions = Self.groupRecentSessions(by: directories)
+            await self?.applyHistory(promptsByDirectory, recentSessions)
         }
     }
 
+    private nonisolated static func groupRecentSessions(by directories: [String]) -> [String: [OpenCodeHistorySession]] {
+        guard let sessions = try? OpenCodeHistoryStore.listSessions() else { return [:] }
+        var grouped: [String: [OpenCodeHistorySession]] = [:]
+        for directory in directories {
+            grouped[directory] = sessions
+                .filter { !$0.isSubagent && $0.directory == directory }
+                .prefix(8)
+                .map { $0 }
+        }
+        return grouped
+    }
+
     @MainActor
-    private func applyFirstPrompts(_ promptsByDirectory: [String: String]) {
+    private func applyHistory(
+        _ promptsByDirectory: [String: String],
+        _ recentSessions: [String: [OpenCodeHistorySession]]
+    ) {
         var map: [UUID: String] = [:]
         for session in sessions {
             if let prompt = promptsByDirectory[session.workingDirectory], !prompt.isEmpty {
@@ -383,6 +421,9 @@ final class AppModel: ObservableObject {
         }
         if map != firstPrompts {
             firstPrompts = map
+        }
+        if recentSessions != recentSessionsByDirectory {
+            recentSessionsByDirectory = recentSessions
         }
     }
 

@@ -8,13 +8,13 @@ enum SessionActivity: String, Codable, Sendable {
     case stopped
     case failed
 
-    var label: String {
+    var labelKey: String {
         switch self {
-        case .launching: "Launching"
-        case .running: "Running"
-        case .attention: "Needs attention"
-        case .stopped: "Stopped"
-        case .failed: "Failed"
+        case .launching: "activity.launching"
+        case .running: "activity.running"
+        case .attention: "activity.attention"
+        case .stopped: "activity.stopped"
+        case .failed: "activity.failed"
         }
     }
 }
@@ -26,6 +26,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
     var workingDirectory: String
     var arguments: String
     var customCommand: String
+    var opencodeSessionID: String?
     var iconName: String?
     var iconColorName: String?
     var isPinned: Bool
@@ -41,6 +42,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
         workingDirectory: String,
         arguments: String = "",
         customCommand: String = "",
+        opencodeSessionID: String? = nil,
         iconName: String? = nil,
         iconColorName: String? = nil,
         isPinned: Bool = false,
@@ -55,6 +57,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
         self.workingDirectory = workingDirectory
         self.arguments = arguments
         self.customCommand = customCommand
+        self.opencodeSessionID = opencodeSessionID
         self.iconName = iconName
         self.iconColorName = iconColorName
         self.isPinned = isPinned

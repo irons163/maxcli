@@ -1,0 +1,129 @@
+/* メニューコマンド */
+"menu.newSession" = "新規セッション…";
+"menu.sessions" = "セッション";
+"menu.quickSwitcher" = "クイックスイッチャー…";
+"menu.opencodeHistory" = "opencode 履歴…";
+"menu.previousSession" = "前のセッション";
+"menu.nextSession" = "次のセッション";
+"menu.duplicateSession" = "セッションを複製";
+"menu.restartSession" = "セッションを再起動";
+"menu.stopSession" = "セッションを停止";
+"menu.sessionNumber" = "セッション %d";
+"menu.layout" = "レイアウト";
+"menu.layout.focus" = "フォーカス";
+"menu.layout.grid" = "グリッド";
+"menu.layout.active" = "実行中";
+"menu.cycleLayout" = "レイアウトを切り替え";
+"menu.language" = "言語";
+"language.system" = "システムに従う";
+
+/* 共通 */
+"common.cancel" = "キャンセル";
+
+/* メイン画面 */
+"close.title" = "実行中のセッションを閉じますか？";
+"close.confirm" = "停止して閉じる";
+"close.message" = "%@ はまだ実行中です。プロセスが終了されます。";
+"workspace.selectSession" = "セッションを選択";
+"workspace.noActive" = "実行中のセッションがありません";
+"help.opencodeHistory" = "opencode 履歴 (⌘⇧H)";
+"help.quickSwitcher" = "クイックスイッチャー (⌘K)";
+"help.layout" = "フォーカス・グリッド・実行中レイアウト";
+"help.newSession" = "新規セッション (⌘N)";
+
+/* サイドバー */
+"metric.running" = "実行中";
+"metric.attention" = "要確認";
+"metric.total" = "合計";
+"search.placeholder" = "セッションを検索";
+"filter.allAgents" = "すべてのエージェント";
+"sidebar.newSession" = "新規セッション";
+"sidebar.startAllStopped" = "停止中をすべて起動";
+"sidebar.stopAll" = "すべて停止";
+"context.pin" = "ピン留め";
+"context.unpin" = "ピン留め解除";
+"context.duplicate" = "複製";
+"context.stop" = "停止";
+"context.start" = "起動";
+"context.restart" = "再起動";
+"context.copyLaunchCommand" = "起動コマンドをコピー";
+"context.revealInFinder" = "Finder で表示";
+"context.close" = "閉じる";
+"context.bindOpenCode" = "opencode セッションに紐付け";
+"context.noOpenCodeSessions" = "opencode セッションが見つかりません";
+"context.unbind" = "紐付け解除";
+"context.boundToOpenCode" = "opencode セッションに紐付け済み";
+"sidebar.sessionActions" = "セッション操作";
+
+/* ターミナルペイン */
+"help.stop" = "セッションを停止";
+"pane.start" = "起動";
+"help.closeSession" = "セッションを閉じる";
+"pane.notRunning" = "セッションは実行されていません";
+"pane.startAgent" = "%@ を起動";
+"pane.processFailed" = "プロセスが失敗しました";
+"pane.processExited" = "プロセスが終了しました";
+"pane.restart" = "再起動";
+
+/* 新規セッションシート */
+"sheet.title" = "新規セッション";
+"sheet.subtitle" = "独立したワークスペースで AI CLI を起動します。";
+"sheet.agent" = "エージェント";
+"sheet.icon" = "アイコン";
+"help.agentDefault" = "エージェントのデフォルト";
+"field.sessionName" = "セッション名";
+"field.workingDirectory" = "作業ディレクトリ";
+"field.choose" = "選択…";
+"field.command" = "コマンド";
+"field.commandExample" = "例: my-agent --interactive";
+"field.arguments" = "引数（任意）";
+"field.pinInSidebar" = "サイドバーにピン留め";
+"sheet.notFound" = "app の PATH に %@ が見つかりません。ログインシェルでの実行を試みます。";
+"sheet.shortcutHint" = "⌘1…⌘9 でセッションを即時切り替え";
+"sheet.create" = "セッションを作成";
+
+/* クイックスイッチャー */
+"quick.jump" = "セッションへジャンプ…";
+
+/* 空のワークスペース */
+"empty.title" = "AI コマンドセンター";
+"empty.subtitle" = "Codex、Claude Code、Gemini などの CLI を並べて実行。\n各セッションは独自のターミナルと作業ディレクトリを保持します。";
+"empty.createFirst" = "最初のセッションを作成";
+"empty.new" = "⌘N 新規";
+"empty.switch" = "⌘K 切替";
+"empty.grid" = "⌘⇧G グリッド";
+
+/* セッションの状態 */
+"activity.launching" = "起動中";
+"activity.running" = "実行中";
+"activity.attention" = "要確認";
+"activity.stopped" = "停止済み";
+"activity.failed" = "失敗";
+
+/* 履歴ビュー */
+"history.title" = "opencode 履歴";
+"history.reload" = "再読み込み";
+"history.close" = "閉じる (Esc)";
+"history.search" = "履歴を検索";
+"history.error" = "履歴を読み込めません";
+"history.retry" = "再試行";
+"history.empty" = "履歴がありません";
+"history.emptyDetail" = "opencode の会話が見つかりません\n%@";
+"history.loading" = "読み込み中…";
+"history.loadFailed" = "読み込みに失敗しました";
+"history.selectSession" = "セッションを選択";
+"history.you" = "あなた";
+"history.role.system" = "システム";
+"history.role.tool" = "ツール";
+"history.role.assistant" = "アシスタント";
+"history.messageCount" = "%d 件";
+"history.toolCalls" = "%d 回のツール呼び出し";
+"history.reasoningBlocks" = "%d 件の推論";
+"history.files" = "%d 個のファイル";
+"history.otherContent" = "その他の内容";
+"history.thinking" = "思考";
+"history.thinkingProcess" = "思考プロセス";
+"history.file" = "ファイル";
+"history.tool" = "ツール";
+"history.input" = "入力";
+"history.output" = "出力";

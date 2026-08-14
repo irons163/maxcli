@@ -1,0 +1,129 @@
+/* 메뉴 명령 */
+"menu.newSession" = "새 세션…";
+"menu.sessions" = "세션";
+"menu.quickSwitcher" = "빠른 전환…";
+"menu.opencodeHistory" = "opencode 기록…";
+"menu.previousSession" = "이전 세션";
+"menu.nextSession" = "다음 세션";
+"menu.duplicateSession" = "세션 복제";
+"menu.restartSession" = "세션 다시 시작";
+"menu.stopSession" = "세션 중지";
+"menu.sessionNumber" = "세션 %d";
+"menu.layout" = "레이아웃";
+"menu.layout.focus" = "집중";
+"menu.layout.grid" = "그리드";
+"menu.layout.active" = "실행 중";
+"menu.cycleLayout" = "레이아웃 전환";
+"menu.language" = "언어";
+"language.system" = "시스템 따르기";
+
+/* 공통 */
+"common.cancel" = "취소";
+
+/* 메인 화면 */
+"close.title" = "실행 중인 세션을 닫을까요?";
+"close.confirm" = "중지하고 닫기";
+"close.message" = "%@이(가) 아직 실행 중입니다. 프로세스가 종료됩니다.";
+"workspace.selectSession" = "세션 선택";
+"workspace.noActive" = "실행 중인 세션이 없습니다";
+"help.opencodeHistory" = "opencode 기록 (⌘⇧H)";
+"help.quickSwitcher" = "빠른 전환 (⌘K)";
+"help.layout" = "집중·그리드·실행 중 레이아웃";
+"help.newSession" = "새 세션 (⌘N)";
+
+/* 사이드바 */
+"metric.running" = "실행 중";
+"metric.attention" = "확인 필요";
+"metric.total" = "총합";
+"search.placeholder" = "세션 검색";
+"filter.allAgents" = "모든 에이전트";
+"sidebar.newSession" = "새 세션";
+"sidebar.startAllStopped" = "중지된 세션 모두 시작";
+"sidebar.stopAll" = "모두 중지";
+"context.pin" = "고정";
+"context.unpin" = "고정 해제";
+"context.duplicate" = "복제";
+"context.stop" = "중지";
+"context.start" = "시작";
+"context.restart" = "다시 시작";
+"context.copyLaunchCommand" = "실행 명령 복사";
+"context.revealInFinder" = "Finder에 표시";
+"context.close" = "닫기";
+"context.bindOpenCode" = "opencode 세션에 연결";
+"context.noOpenCodeSessions" = "opencode 세션을 찾을 수 없습니다";
+"context.unbind" = "연결 해제";
+"context.boundToOpenCode" = "opencode 세션에 연결됨";
+"sidebar.sessionActions" = "세션 작업";
+
+/* 터미널 패널 */
+"help.stop" = "세션 중지";
+"pane.start" = "시작";
+"help.closeSession" = "세션 닫기";
+"pane.notRunning" = "세션이 실행 중이 아닙니다";
+"pane.startAgent" = "%@ 시작";
+"pane.processFailed" = "프로세스 실패";
+"pane.processExited" = "프로세스 종료됨";
+"pane.restart" = "다시 시작";
+
+/* 새 세션 시트 */
+"sheet.title" = "새 세션";
+"sheet.subtitle" = "독립된 작업 공간에서 AI CLI를 실행합니다.";
+"sheet.agent" = "에이전트";
+"sheet.icon" = "아이콘";
+"help.agentDefault" = "에이전트 기본값";
+"field.sessionName" = "세션 이름";
+"field.workingDirectory" = "작업 디렉터리";
+"field.choose" = "선택…";
+"field.command" = "명령";
+"field.commandExample" = "예: my-agent --interactive";
+"field.arguments" = "인수(선택 사항)";
+"field.pinInSidebar" = "사이드바에 고정";
+"sheet.notFound" = "앱 PATH에서 %@을(를) 찾을 수 없습니다. 로그인 셸로 실행을 시도합니다.";
+"sheet.shortcutHint" = "⌘1…⌘9로 세션 즉시 전환";
+"sheet.create" = "세션 만들기";
+
+/* 빠른 전환 */
+"quick.jump" = "세션으로 이동…";
+
+/* 빈 작업 공간 */
+"empty.title" = "AI 커맨드 센터";
+"empty.subtitle" = "Codex, Claude Code, Gemini 등의 CLI를 나란히 실행하세요.\n각 세션은 자체 터미널과 작업 디렉터리를 유지합니다.";
+"empty.createFirst" = "첫 세션 만들기";
+"empty.new" = "⌘N 새로 만들기";
+"empty.switch" = "⌘K 전환";
+"empty.grid" = "⌘⇧G 그리드";
+
+/* 세션 활동 */
+"activity.launching" = "시작 중";
+"activity.running" = "실행 중";
+"activity.attention" = "확인 필요";
+"activity.stopped" = "중지됨";
+"activity.failed" = "실패";
+
+/* 기록 보기 */
+"history.title" = "opencode 기록";
+"history.reload" = "새로고침";
+"history.close" = "닫기 (Esc)";
+"history.search" = "기록 검색";
+"history.error" = "기록을 읽을 수 없습니다";
+"history.retry" = "다시 시도";
+"history.empty" = "기록 없음";
+"history.emptyDetail" = "opencode 대화를 아직 찾지 못했습니다\n%@";
+"history.loading" = "불러오는 중…";
+"history.loadFailed" = "불러오기 실패";
+"history.selectSession" = "세션 선택";
+"history.you" = "나";
+"history.role.system" = "시스템";
+"history.role.tool" = "도구";
+"history.role.assistant" = "어시스턴트";
+"history.messageCount" = "%d개";
+"history.toolCalls" = "도구 호출 %d회";
+"history.reasoningBlocks" = "추론 %d개";
+"history.files" = "파일 %d개";
+"history.otherContent" = "기타 콘텐츠";
+"history.thinking" = "사고";
+"history.thinkingProcess" = "사고 과정";
+"history.file" = "파일";
+"history.tool" = "도구";
+"history.input" = "입력";
+"history.output" = "출력";

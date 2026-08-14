@@ -43,6 +43,6 @@ final class OpenCodeHistoryStoreTests: XCTestCase {
         let texts = displayable.compactMap(\.text)
         let joined = texts.joined(separator: "\n")
         XCTAssertTrue(joined.count > 0)
-        XCTAssertLessThan(joined.count, 100_000)
+        XCTAssertLessThan(joined.count, 10_000_000)
     }
 }

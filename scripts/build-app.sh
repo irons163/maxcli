@@ -23,10 +23,16 @@ rm -rf "$APP_DIR"
 mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
 cp "$BIN_DIR/MaxCLI" "$MACOS_DIR/MaxCLI"
 cp "$PROJECT_DIR/Packaging/Info.plist" "$CONTENTS_DIR/Info.plist"
+cp "$PROJECT_DIR/Packaging/AppIcon.icns" "$RESOURCES_DIR/AppIcon.icns"
 
 # SwiftTerm explicitly probes the standard macOS app resource location.
 if [[ -d "$BIN_DIR/SwiftTerm_SwiftTerm.bundle" ]]; then
     cp -R "$BIN_DIR/SwiftTerm_SwiftTerm.bundle" "$RESOURCES_DIR/SwiftTerm_SwiftTerm.bundle"
+fi
+
+# Localizations are bundled next to the binary by SwiftPM.
+if [[ -d "$BIN_DIR/MaxCLI_MaxCLI.bundle" ]]; then
+    cp -R "$BIN_DIR/MaxCLI_MaxCLI.bundle" "$RESOURCES_DIR/MaxCLI_MaxCLI.bundle"
 fi
 
 codesign --force --deep --sign - "$APP_DIR"

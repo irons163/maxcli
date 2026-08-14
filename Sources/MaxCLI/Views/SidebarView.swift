@@ -17,9 +17,9 @@ struct SidebarView: View {
 
     private var overview: some View {
         HStack(spacing: 8) {
-            metric(value: model.runningCount, label: "Running", color: .green)
-            metric(value: model.attentionCount, label: "Attention", color: .orange)
-            metric(value: model.sessions.count, label: "Total", color: .secondary)
+            metric(value: model.runningCount, label: model.tr("metric.running"), color: .green)
+            metric(value: model.attentionCount, label: model.tr("metric.attention"), color: .orange)
+            metric(value: model.sessions.count, label: model.tr("metric.total"), color: .secondary)
         }
         .padding(.horizontal, 12)
         .padding(.top, 12)
@@ -42,11 +42,11 @@ struct SidebarView: View {
 
     private var searchAndFilter: some View {
         HStack(spacing: 6) {
-            TextField("Search sessions", text: $model.searchText)
+            TextField(model.tr("search.placeholder"), text: $model.searchText)
                 .textFieldStyle(.roundedBorder)
 
             Menu {
-                Button("All agents") { model.agentFilter = nil }
+                Button(model.tr("filter.allAgents")) { model.agentFilter = nil }
                 Divider()
                 ForEach(AgentKind.allCases.filter { $0 != .custom }) { agent in
                     Button {
@@ -78,24 +78,49 @@ struct SidebarView: View {
                     .contentShape(Rectangle())
                     .onTapGesture { model.select(session.id) }
                     .contextMenu {
-                        Button(session.isPinned ? "Unpin" : "Pin") {
+                        Button(session.isPinned ? model.tr("context.unpin") : model.tr("context.pin")) {
                             model.togglePin(session.id)
                         }
-                        Button("Duplicate") {
+                        Button(model.tr("context.duplicate")) {
                             model.select(session.id)
                             model.duplicateSelected()
                         }
                         if model.runtime(for: session.id)?.isRunning == true {
-                            Button("Stop") { model.stop(session.id) }
+                            Button(model.tr("context.stop")) { model.stop(session.id) }
                         } else {
-                            Button("Start") { model.start(session.id) }
+                            Button(model.tr("context.start")) { model.start(session.id) }
                         }
-                        Button("Restart") { model.restart(session.id) }
+                        Button(model.tr("context.restart")) { model.restart(session.id) }
+                        if session.agent == .opencode {
+                            Menu(model.tr("context.bindOpenCode")) {
+                                if model.recentSessionsByDirectory[session.workingDirectory]?.isEmpty != false {
+                                    Text(model.tr("context.noOpenCodeSessions"))
+                                }
+                                ForEach(model.recentSessionsByDirectory[session.workingDirectory] ?? []) { entry in
+                                    Button {
+                                        model.bindOpenCodeSession(session.id, to: entry.id)
+                                    } label: {
+                                        Label(
+                                            entry.title,
+                                            systemImage: session.opencodeSessionID == entry.id
+                                                ? "checkmark.circle.fill"
+                                                : "circle"
+                                        )
+                                    }
+                                }
+                                if session.opencodeSessionID != nil {
+                                    Divider()
+                                    Button(model.tr("context.unbind")) {
+                                        model.bindOpenCodeSession(session.id, to: nil)
+                                    }
+                                }
+                            }
+                        }
                         Divider()
-                        Button("Copy Launch Command") { model.copyLaunchCommand(session.id) }
-                        Button("Reveal in Finder") { model.revealInFinder(session.id) }
+                        Button(model.tr("context.copyLaunchCommand")) { model.copyLaunchCommand(session.id) }
+                        Button(model.tr("context.revealInFinder")) { model.revealInFinder(session.id) }
                         Divider()
-                        Button("Close", role: .destructive) { onRequestClose(session) }
+                        Button(model.tr("context.close"), role: .destructive) { onRequestClose(session) }
                     }
                 }
             }
@@ -114,25 +139,45 @@ struct SidebarView: View {
             Button {
                 model.isShowingNewSession = true
             } label: {
-                Label("New Session", systemImage: "plus")
+                Label(model.tr("sidebar.newSession"), systemImage: "plus")
             }
             .buttonStyle(.borderless)
 
             Spacer()
 
             Menu {
-                Button("Start All Stopped") { model.restartStopped() }
+                Button(model.tr("sidebar.startAllStopped")) { model.restartStopped() }
                     .disabled(model.sessions.allSatisfy { model.runtime(for: $0.id)?.isRunning == true })
-                Button("Stop All", role: .destructive) { model.stopAll() }
+                Button(model.tr("sidebar.stopAll"), role: .destructive) { model.stopAll() }
                     .disabled(model.runningCount == 0)
+                Divider()
+                Menu {
+                    ForEach(AppLanguage.allCases) { language in
+                        Button {
+                            model.language = language
+                        } label: {
+                            if model.language == language {
+                                Label(languageLabel(language), systemImage: "checkmark")
+                            } else {
+                                Text(languageLabel(language))
+                            }
+                        }
+                    }
+                } label: {
+                    Label(model.tr("menu.language"), systemImage: "globe")
+                }
             } label: {
                 Image(systemName: "ellipsis.circle")
             }
             .menuStyle(.borderlessButton)
-            .help("Session actions")
+            .help(model.tr("sidebar.sessionActions"))
         }
         .padding(12)
         .background(.bar)
+    }
+
+    private func languageLabel(_ language: AppLanguage) -> String {
+        language == .system ? model.tr("language.system") : language.displayName
     }
 }
 
@@ -168,6 +213,12 @@ private struct SessionRow: View {
                         Image(systemName: "pin.fill")
                             .font(.system(size: 8))
                             .foregroundStyle(.secondary)
+                    }
+                    if session.opencodeSessionID != nil {
+                        Image(systemName: "link")
+                            .font(.system(size: 8))
+                            .foregroundStyle(.secondary)
+                            .help(model.tr("context.boundToOpenCode"))
                     }
                 }
                 if let preview = model.firstPrompts[session.id] {

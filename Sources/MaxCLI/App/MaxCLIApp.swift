@@ -13,53 +13,69 @@ struct MaxCLIApp: App {
         .defaultSize(width: 1320, height: 820)
         .commands {
             CommandGroup(replacing: .newItem) {
-                Button("New Session…") {
+                Button {
                     model.isShowingNewSession = true
+                } label: {
+                    Text(model.tr("menu.newSession"))
                 }
                 .keyboardShortcut("n")
             }
 
-            CommandMenu("Sessions") {
-                Button("Quick Switcher…") {
+            CommandMenu(Text(model.tr("menu.sessions"))) {
+                Button {
                     model.isShowingQuickSwitcher = true
+                } label: {
+                    Text(model.tr("menu.quickSwitcher"))
                 }
                 .keyboardShortcut("k")
 
                 Divider()
 
-                Button("opencode History…") {
+                Button {
                     model.isShowingHistory = true
+                } label: {
+                    Text(model.tr("menu.opencodeHistory"))
                 }
                 .keyboardShortcut("h", modifiers: [.command, .shift])
 
                 Divider()
 
-                Button("Previous Session") {
+                Button {
                     model.selectNext(offset: -1)
+                } label: {
+                    Text(model.tr("menu.previousSession"))
                 }
                 .keyboardShortcut("[", modifiers: [.command])
 
-                Button("Next Session") {
+                Button {
                     model.selectNext(offset: 1)
+                } label: {
+                    Text(model.tr("menu.nextSession"))
                 }
                 .keyboardShortcut("]", modifiers: [.command])
 
                 Divider()
 
-                Button("Duplicate Session") {
+                Button {
                     model.duplicateSelected()
+                } label: {
+                    Text(model.tr("menu.duplicateSession"))
                 }
                 .keyboardShortcut("d")
                 .disabled(model.selectedSession == nil)
 
-                Button("Restart Session") {
+                Button {
                     if let id = model.selectedSessionID { model.restart(id) }
+                } label: {
+                    Text(model.tr("menu.restartSession"))
                 }
                 .keyboardShortcut("r", modifiers: [.command, .shift])
                 .disabled(model.selectedSession == nil)
 
-                Button("Stop Session") {
+                Button {
                     if let id = model.selectedSessionID { model.stop(id) }
+                } label: {
+                    Text(model.tr("menu.stopSession"))
                 }
                 .keyboardShortcut(".", modifiers: [.command, .shift])
                 .disabled(model.selectedSession == nil)
@@ -67,29 +83,53 @@ struct MaxCLIApp: App {
                 Divider()
 
                 ForEach(0..<9, id: \.self) { index in
-                    Button("Session \(index + 1)") {
+                    Button {
                         model.selectSession(at: index)
+                    } label: {
+                        Text(model.trf("menu.sessionNumber", index + 1))
                     }
                     .keyboardShortcut(KeyEquivalent(Character(String(index + 1))))
                 }
             }
 
-            CommandMenu("Layout") {
-                Picker("Layout", selection: $model.layoutMode) {
+            CommandMenu(Text(model.tr("menu.layout"))) {
+                Picker(selection: $model.layoutMode) {
                     ForEach(LayoutMode.allCases) { mode in
-                        Label(mode.title, systemImage: mode.symbolName)
+                        Label(model.tr(mode.titleKey), systemImage: mode.symbolName)
                             .tag(mode)
                     }
+                } label: {
+                    Text(model.tr("menu.layout"))
                 }
                 .pickerStyle(.inline)
 
                 Divider()
 
-                Button("Cycle Layout") {
+                Button {
                     model.layoutMode = model.layoutMode.next
+                } label: {
+                    Text(model.tr("menu.cycleLayout"))
                 }
                 .keyboardShortcut("g", modifiers: [.command, .shift])
             }
+
+            CommandMenu(Text(model.tr("menu.language"))) {
+                ForEach(AppLanguage.allCases) { language in
+                    Button {
+                        model.language = language
+                    } label: {
+                        if model.language == language {
+                            Label(languageLabel(language), systemImage: "checkmark")
+                        } else {
+                            Text(languageLabel(language))
+                        }
+                    }
+                }
+            }
         }
+    }
+
+    private func languageLabel(_ language: AppLanguage) -> String {
+        language == .system ? model.tr("language.system") : language.displayName
     }
 }

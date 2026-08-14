@@ -73,6 +73,7 @@ final class HistoryModel: ObservableObject {
 
 struct HistoryView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var appModel: AppModel
     @StateObject private var model = HistoryModel()
 
     var body: some View {
@@ -81,7 +82,7 @@ struct HistoryView: View {
         } detail: {
             transcriptDetail
         }
-        .navigationTitle("opencode History")
+        .navigationTitle(appModel.tr("history.title"))
         .overlay(alignment: .topTrailing) {
             HStack(spacing: 10) {
                 Button {
@@ -92,7 +93,7 @@ struct HistoryView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
-                .help("更新")
+                .help(appModel.tr("history.reload"))
 
                 Button {
                     dismiss()
@@ -102,7 +103,7 @@ struct HistoryView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
-                .help("關閉 (Esc)")
+                .help(appModel.tr("history.close"))
             }
             .padding(.top, 10)
             .padding(.trailing, 12)
@@ -119,7 +120,7 @@ struct HistoryView: View {
             if model.sessions.isEmpty {
                 emptySidebar
             } else {
-                TextField("搜尋紀錄", text: $model.searchText)
+                TextField(appModel.tr("history.search"), text: $model.searchText)
                     .textFieldStyle(.roundedBorder)
                     .padding(10)
 
@@ -148,19 +149,19 @@ struct HistoryView: View {
     private var emptySidebar: some View {
         if let errorMessage = model.errorMessage {
             ContentUnavailableView {
-                Label("無法讀取紀錄", systemImage: "exclamationmark.triangle")
+                Label(appModel.tr("history.error"), systemImage: "exclamationmark.triangle")
             } description: {
                 Text("\(errorMessage)\n\(model.databasePath)")
             } actions: {
-                Button("重試") {
+                Button(appModel.tr("history.retry")) {
                     Task { await model.reload() }
                 }
             }
         } else {
             ContentUnavailableView {
-                Label("沒有紀錄", systemImage: "clock.arrow.circlepath")
+                Label(appModel.tr("history.empty"), systemImage: "clock.arrow.circlepath")
             } description: {
-                Text("還沒有找到 opencode 對話紀錄\n\(model.databasePath)")
+                Text(appModel.trf("history.emptyDetail", model.databasePath))
             }
         }
     }
@@ -170,18 +171,18 @@ struct HistoryView: View {
     @ViewBuilder
     private var transcriptDetail: some View {
         if model.isLoading, model.transcript == nil {
-            ProgressView("載入中…")
+            ProgressView(appModel.tr("history.loading"))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if let transcript = model.transcript {
             TranscriptView(transcript: transcript)
         } else if let errorMessage = model.errorMessage {
             ContentUnavailableView {
-                Label("讀取失敗", systemImage: "exclamationmark.triangle")
+                Label(appModel.tr("history.loadFailed"), systemImage: "exclamationmark.triangle")
             } description: {
                 Text(errorMessage)
             }
         } else {
-            ContentUnavailableView("選擇一個 session", systemImage: "bubble.left.and.bubble.right")
+            ContentUnavailableView(appModel.tr("history.selectSession"), systemImage: "bubble.left.and.bubble.right")
         }
     }
 }
@@ -189,6 +190,7 @@ struct HistoryView: View {
 private struct HistorySessionRow: View {
     let session: OpenCodeHistorySession
     let isSelected: Bool
+    @EnvironmentObject private var appModel: AppModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
@@ -222,12 +224,13 @@ private struct HistorySessionRow: View {
         let directory = URL(fileURLWithPath: session.directory).lastPathComponent
         let agent = session.agent ?? "opencode"
         let date = session.timeUpdated.formatted(.relative(presentation: .named))
-        return "\(agent) · \(directory) · \(session.messageCount) 則 · \(date)"
+        return "\(agent) · \(directory) · \(appModel.trf("history.messageCount", session.messageCount)) · \(date)"
     }
 }
 
 private struct TranscriptView: View {
     let transcript: OpenCodeTranscript
+    @EnvironmentObject private var appModel: AppModel
 
     var body: some View {
         ScrollView {
@@ -284,13 +287,14 @@ private struct TranscriptView: View {
     private var headerLine: String {
         let directory = URL(fileURLWithPath: transcript.session.directory).lastPathComponent
         let created = transcript.session.timeCreated.formatted(date: .abbreviated, time: .shortened)
-        return "\(transcript.session.agent ?? "opencode") · \(directory) · \(transcript.messages.count) 則 · \(created)"
+        return "\(transcript.session.agent ?? "opencode") · \(directory) · \(appModel.trf("history.messageCount", transcript.messages.count)) · \(created)"
     }
 }
 
 private struct MessageBlock: View {
     let role: String
     let parts: [OpenCodePart]
+    @EnvironmentObject private var appModel: AppModel
 
     var body: some View {
         let textParts = parts.filter { $0.kind == .text }
@@ -298,11 +302,11 @@ private struct MessageBlock: View {
         if !parts.isEmpty || role == "user" {
             VStack(alignment: .leading, spacing: 8) {
                 if isUser {
-                    Text("你")
+                    Text(appModel.tr("history.you"))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                 } else {
-                    Text(role == "system" ? "System" : (role == "tool" ? "Tool" : "Assistant"))
+                    Text(roleLabel)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                 }
@@ -328,10 +332,20 @@ private struct MessageBlock: View {
     private var isUser: Bool {
         role == "user"
     }
+
+    private var roleLabel: String {
+        switch role {
+        case "system": appModel.tr("history.role.system")
+        case "tool": appModel.tr("history.role.tool")
+        case "assistant": appModel.tr("history.role.assistant")
+        default: role
+        }
+    }
 }
 
 private struct OtherPartsDisclosure: View {
     let parts: [OpenCodePart]
+    @EnvironmentObject private var appModel: AppModel
 
     private var toolCount: Int { parts.filter { $0.kind == .tool }.count }
     private var reasoningCount: Int { parts.filter { $0.kind == .reasoning }.count }
@@ -343,7 +357,7 @@ private struct OtherPartsDisclosure: View {
                 ForEach(parts) { part in
                     if part.kind == .reasoning, let text = part.text, !text.isEmpty {
                         VStack(alignment: .leading, spacing: 4) {
-                            Label("思考", systemImage: "brain")
+                            Label(appModel.tr("history.thinking"), systemImage: "brain")
                                 .font(.caption.weight(.medium))
                                 .foregroundStyle(.secondary)
                             Text(text)
@@ -368,10 +382,10 @@ private struct OtherPartsDisclosure: View {
 
     private var summary: String {
         var segments: [String] = []
-        if toolCount > 0 { segments.append("\(toolCount) 個工具呼叫") }
-        if reasoningCount > 0 { segments.append("\(reasoningCount) 段思考") }
-        if fileCount > 0 { segments.append("\(fileCount) 個檔案") }
-        return segments.isEmpty ? "其他內容" : segments.joined(separator: " · ")
+        if toolCount > 0 { segments.append(appModel.trf("history.toolCalls", toolCount)) }
+        if reasoningCount > 0 { segments.append(appModel.trf("history.reasoningBlocks", reasoningCount)) }
+        if fileCount > 0 { segments.append(appModel.trf("history.files", fileCount)) }
+        return segments.isEmpty ? appModel.tr("history.otherContent") : segments.joined(separator: " · ")
     }
 
     private var icon: String {
@@ -383,6 +397,7 @@ private struct OtherPartsDisclosure: View {
 
 private struct PartView: View {
     let part: OpenCodePart
+    @EnvironmentObject private var appModel: AppModel
 
     var body: some View {
         switch part.kind {
@@ -402,7 +417,7 @@ private struct PartView: View {
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } label: {
-                    Label("思考過程", systemImage: "brain")
+                    Label(appModel.tr("history.thinkingProcess"), systemImage: "brain")
                         .font(.caption.weight(.medium))
                         .foregroundStyle(.secondary)
                 }
@@ -412,7 +427,7 @@ private struct PartView: View {
         case .file:
             HStack(spacing: 6) {
                 Image(systemName: "paperclip")
-                Text(part.filename ?? "file")
+                Text(part.filename ?? appModel.tr("history.file"))
                     .font(.caption)
                     .textSelection(.enabled)
             }
@@ -433,18 +448,19 @@ private struct PartView: View {
 
 private struct ToolPartView: View {
     let part: OpenCodePart
+    @EnvironmentObject private var appModel: AppModel
 
     var body: some View {
         DisclosureGroup {
             VStack(alignment: .leading, spacing: 8) {
                 if let input = part.toolInput {
-                    LabeledContent("Input") {
+                    LabeledContent(appModel.tr("history.input")) {
                         CodeText(input, limit: 400)
                     }
                     .labelStyle(.titleOnly)
                 }
                 if let output = part.toolOutput {
-                    LabeledContent("Output") {
+                    LabeledContent(appModel.tr("history.output")) {
                         CodeText(output, limit: 800)
                     }
                     .labelStyle(.titleOnly)
@@ -455,7 +471,7 @@ private struct ToolPartView: View {
             HStack(spacing: 6) {
                 Image(systemName: "wrench.and.screwdriver")
                     .font(.system(size: 11))
-                Text(part.toolName ?? "tool")
+                Text(part.toolName ?? appModel.tr("history.tool"))
                     .font(.caption.weight(.medium))
                 if let status = part.toolStatus {
                     Text(status)

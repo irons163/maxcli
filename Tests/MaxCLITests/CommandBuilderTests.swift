@@ -67,6 +67,24 @@ final class CommandBuilderTests: XCTestCase {
         XCTAssertEqual(CommandBuilder.pastedPaths([]), "")
     }
 
+    func testResumesBoundOpenCodeSession() throws {
+        let session = WorkspaceSession(
+            title: "OC",
+            agent: .opencode,
+            workingDirectory: "/tmp",
+            arguments: "--verbose",
+            opencodeSessionID: "sess_abc123"
+        )
+
+        XCTAssertEqual(
+            CommandBuilder.loginShellArguments(
+                for: session,
+                executableLocator: .isolated
+            ),
+            ["-l", "-c", "cd '/tmp'; exec opencode --verbose -s 'sess_abc123'"]
+        )
+    }
+
     func testRestoredSessionsAreStopped() throws {
         let suite = "MaxCLITests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

@@ -1,0 +1,129 @@
+/* 菜单命令 */
+"menu.newSession" = "新建 Session…";
+"menu.sessions" = "Sessions";
+"menu.quickSwitcher" = "快速切换…";
+"menu.opencodeHistory" = "opencode 历史…";
+"menu.previousSession" = "上一个 Session";
+"menu.nextSession" = "下一个 Session";
+"menu.duplicateSession" = "复制 Session";
+"menu.restartSession" = "重启 Session";
+"menu.stopSession" = "停止 Session";
+"menu.sessionNumber" = "Session %d";
+"menu.layout" = "布局";
+"menu.layout.focus" = "专注";
+"menu.layout.grid" = "网格";
+"menu.layout.active" = "运行中";
+"menu.cycleLayout" = "循环切换布局";
+"menu.language" = "语言";
+"language.system" = "跟随系统";
+
+/* 通用 */
+"common.cancel" = "取消";
+
+/* 主窗口 */
+"close.title" = "要关闭运行中的 session 吗？";
+"close.confirm" = "停止并关闭";
+"close.message" = "%@ 仍在运行，关闭会终止其进程。";
+"workspace.selectSession" = "选择一个 session";
+"workspace.noActive" = "没有运行中的 session";
+"help.opencodeHistory" = "opencode 历史 (⌘⇧H)";
+"help.quickSwitcher" = "快速切换 (⌘K)";
+"help.layout" = "专注、网格或运行中布局";
+"help.newSession" = "新建 session (⌘N)";
+
+/* Sidebar */
+"metric.running" = "运行中";
+"metric.attention" = "待处理";
+"metric.total" = "总数";
+"search.placeholder" = "搜索 session";
+"filter.allAgents" = "所有 agents";
+"sidebar.newSession" = "新建 Session";
+"sidebar.startAllStopped" = "启动所有已停止的";
+"sidebar.stopAll" = "全部停止";
+"context.pin" = "置顶";
+"context.unpin" = "取消置顶";
+"context.duplicate" = "复制";
+"context.stop" = "停止";
+"context.start" = "启动";
+"context.restart" = "重启";
+"context.copyLaunchCommand" = "复制启动命令";
+"context.revealInFinder" = "在 Finder 中显示";
+"context.close" = "关闭";
+"context.bindOpenCode" = "绑定 opencode Session";
+"context.noOpenCodeSessions" = "找不到 opencode session";
+"context.unbind" = "解除绑定";
+"context.boundToOpenCode" = "已绑定 opencode session";
+"sidebar.sessionActions" = "Session 操作";
+
+/* 终端面板 */
+"help.stop" = "停止 session";
+"pane.start" = "启动";
+"help.closeSession" = "关闭 session";
+"pane.notRunning" = "Session 未在运行";
+"pane.startAgent" = "启动 %@";
+"pane.processFailed" = "进程失败";
+"pane.processExited" = "进程已结束";
+"pane.restart" = "重启";
+
+/* 新建 session 窗口 */
+"sheet.title" = "新建 Session";
+"sheet.subtitle" = "在独立的工作区启动一个 AI CLI。";
+"sheet.agent" = "Agent";
+"sheet.icon" = "图标";
+"help.agentDefault" = "Agent 默认";
+"field.sessionName" = "Session 名称";
+"field.workingDirectory" = "工作目录";
+"field.choose" = "选择…";
+"field.command" = "命令";
+"field.commandExample" = "例如 my-agent --interactive";
+"field.arguments" = "参数（可选）";
+"field.pinInSidebar" = "在侧边栏置顶";
+"sheet.notFound" = "在 app 的 PATH 中找不到 %@。MaxCLI 仍会尝试你的登录 shell。";
+"sheet.shortcutHint" = "⌘1…⌘9 立即切换 session";
+"sheet.create" = "创建 Session";
+
+/* 快速切换 */
+"quick.jump" = "跳到某个 session…";
+
+/* 空工作区 */
+"empty.title" = "你的 AI 指挥中心";
+"empty.subtitle" = "并排运行 Codex、Claude Code、Gemini 等 CLI。\n每个 session 都有自己的终端与工作目录。";
+"empty.createFirst" = "创建第一个 Session";
+"empty.new" = "⌘N 新建";
+"empty.switch" = "⌘K 切换";
+"empty.grid" = "⌘⇧G 网格";
+
+/* Session 状态 */
+"activity.launching" = "启动中";
+"activity.running" = "运行中";
+"activity.attention" = "需要关注";
+"activity.stopped" = "已停止";
+"activity.failed" = "失败";
+
+/* 历史记录 */
+"history.title" = "opencode 历史";
+"history.reload" = "刷新";
+"history.close" = "关闭 (Esc)";
+"history.search" = "搜索记录";
+"history.error" = "无法读取记录";
+"history.retry" = "重试";
+"history.empty" = "没有记录";
+"history.emptyDetail" = "还没有找到 opencode 对话记录\n%@";
+"history.loading" = "加载中…";
+"history.loadFailed" = "读取失败";
+"history.selectSession" = "选择一个 session";
+"history.you" = "你";
+"history.role.system" = "系统";
+"history.role.tool" = "工具";
+"history.role.assistant" = "助手";
+"history.messageCount" = "%d 条";
+"history.toolCalls" = "%d 个工具调用";
+"history.reasoningBlocks" = "%d 段思考";
+"history.files" = "%d 个文件";
+"history.otherContent" = "其他内容";
+"history.thinking" = "思考";
+"history.thinkingProcess" = "思考过程";
+"history.file" = "文件";
+"history.tool" = "工具";
+"history.input" = "输入";
+"history.output" = "输出";

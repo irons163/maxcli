@@ -28,20 +28,20 @@ struct ContentView: View {
                 .frame(minWidth: 1100, minHeight: 700)
         }
         .alert(
-            "Close running session?",
+            model.tr("close.title"),
             isPresented: Binding(
                 get: { closeCandidate != nil },
                 set: { if !$0 { closeCandidate = nil } }
             ),
             presenting: closeCandidate
         ) { session in
-            Button("Cancel", role: .cancel) { closeCandidate = nil }
-            Button("Stop and Close", role: .destructive) {
+            Button(model.tr("common.cancel"), role: .cancel) { closeCandidate = nil }
+            Button(model.tr("close.confirm"), role: .destructive) {
                 model.close(session.id)
                 closeCandidate = nil
             }
         } message: { session in
-            Text("\(session.title) is still running. Its process will be terminated.")
+            Text(verbatim: model.trf("close.message", session.title))
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
             model.stopAll()
@@ -70,14 +70,14 @@ struct ContentView: View {
             }
             .ignoresSafeArea(.container, edges: .bottom)
         } else {
-            ContentUnavailableView("Select a session", systemImage: "terminal")
+            ContentUnavailableView(model.tr("workspace.selectSession"), systemImage: "terminal")
         }
     }
 
     @ViewBuilder
     private var activeWorkspace: some View {
         if model.activeSessions.isEmpty {
-            ContentUnavailableView("No active sessions", systemImage: "bolt.slash")
+            ContentUnavailableView(model.tr("workspace.noActive"), systemImage: "bolt.slash")
         } else {
             gridWorkspace(sessions: model.activeSessions)
         }
@@ -131,14 +131,14 @@ struct ContentView: View {
             } label: {
                 Image(systemName: "clock.arrow.circlepath")
             }
-            .help("opencode History (⌘⇧H)")
+            .help(model.tr("help.opencodeHistory"))
 
             Button {
                 model.isShowingQuickSwitcher = true
             } label: {
                 Image(systemName: "magnifyingglass")
             }
-            .help("Quick switcher (⌘K)")
+            .help(model.tr("help.quickSwitcher"))
 
             Picker("Layout", selection: $model.layoutMode) {
                 ForEach(LayoutMode.allCases) { mode in
@@ -148,14 +148,14 @@ struct ContentView: View {
             }
             .pickerStyle(.segmented)
             .frame(width: 122)
-            .help("Focus, grid or active layout")
+            .help(model.tr("help.layout"))
 
             Button {
                 model.isShowingNewSession = true
             } label: {
                 Image(systemName: "plus")
             }
-            .help("New session (⌘N)")
+            .help(model.tr("help.newSession"))
         }
     }
 }

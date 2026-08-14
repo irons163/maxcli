@@ -27,12 +27,20 @@ enum CommandBuilder {
         executableLocator: ExecutableLocator
     ) -> String {
         let command = session.launchCommand.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resumeFlag = resumeFlag(for: session)
         guard !command.isEmpty, session.agent != .custom,
               let executablePath = executableLocator.path(for: session.agent)
-        else { return command }
+        else { return command.isEmpty ? command : "\(command)\(resumeFlag)" }
 
         let escapedExecutable = shellEscape(executablePath)
         let arguments = session.arguments.trimmingCharacters(in: .whitespacesAndNewlines)
-        return arguments.isEmpty ? escapedExecutable : "\(escapedExecutable) \(arguments)"
+        return arguments.isEmpty
+            ? "\(escapedExecutable)\(resumeFlag)"
+            : "\(escapedExecutable)\(resumeFlag) \(arguments)"
+    }
+
+    private static func resumeFlag(for session: WorkspaceSession) -> String {
+        guard session.agent == .opencode, let sessionID = session.opencodeSessionID else { return "" }
+        return " -s \(shellEscape(sessionID))"
     }
 }

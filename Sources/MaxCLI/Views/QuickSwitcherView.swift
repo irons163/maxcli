@@ -18,7 +18,7 @@ struct QuickSwitcherView: View {
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
-                TextField("Jump to a session…", text: $query)
+                TextField(model.tr("quick.jump"), text: $query)
                     .textFieldStyle(.plain)
                     .font(.title3)
                     .focused($searchFocused)

@@ -14,24 +14,24 @@ struct EmptyWorkspaceView: View {
                     .foregroundStyle(.tint)
             }
             VStack(spacing: 6) {
-                Text("Your AI command center")
+                Text(model.tr("empty.title"))
                     .font(.title2.weight(.semibold))
-                Text("Run Codex, Claude Code, Gemini and other CLIs side by side.\nEach session keeps its own terminal and working directory.")
+                Text(model.tr("empty.subtitle"))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
             }
             Button {
                 model.isShowingNewSession = true
             } label: {
-                Label("Create First Session", systemImage: "plus")
+                Label(model.tr("empty.createFirst"), systemImage: "plus")
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
 
             HStack(spacing: 20) {
-                Label("⌘N New", systemImage: "keyboard")
-                Label("⌘K Switch", systemImage: "arrow.left.arrow.right")
-                Label("⌘⇧G Grid", systemImage: "square.grid.2x2")
+                Label(model.tr("empty.new"), systemImage: "keyboard")
+                Label(model.tr("empty.switch"), systemImage: "arrow.left.arrow.right")
+                Label(model.tr("empty.grid"), systemImage: "square.grid.2x2")
             }
             .font(.caption)
             .foregroundStyle(.tertiary)

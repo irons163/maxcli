@@ -28,18 +28,18 @@ struct NewSessionSheet: View {
         VStack(alignment: .leading, spacing: 18) {
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("New Session")
+                    Text(model.tr("sheet.title"))
                         .font(.title2.weight(.semibold))
-                    Text("Launch an independent AI CLI in its own workspace.")
+                    Text(model.tr("sheet.subtitle"))
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Button("Cancel") { dismiss() }
+                Button(model.tr("common.cancel")) { dismiss() }
                     .keyboardShortcut(.cancelAction)
             }
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("Agent").font(.headline)
+                Text(model.tr("sheet.agent")).font(.headline)
                 LazyVGrid(columns: columns, spacing: 8) {
                     ForEach(AgentKind.allCases) { item in
                         agentButton(item)
@@ -48,15 +48,15 @@ struct NewSessionSheet: View {
             }
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("Icon").font(.headline)
+                Text(model.tr("sheet.icon")).font(.headline)
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 44), spacing: 8)], spacing: 8) {
-                    iconButton(nil, symbol: agent.symbolName, tint: agent.color, help: "Agent default")
+                    iconButton(nil, symbol: agent.symbolName, tint: agent.color, help: model.tr("help.agentDefault"))
                     ForEach(Self.iconChoices, id: \.self) { symbol in
                         iconButton(symbol, symbol: symbol, tint: nil, help: symbol)
                     }
                 }
                 HStack(spacing: 8) {
-                    colorButton(nil, color: agent.color, help: "Agent default")
+                    colorButton(nil, color: agent.color, help: model.tr("help.agentDefault"))
                     ForEach(WorkspaceSession.iconColorChoices, id: \.name) { choice in
                         colorButton(choice.name, color: choice.color, help: choice.name)
                     }
@@ -64,40 +64,40 @@ struct NewSessionSheet: View {
             }
 
             Form {
-                TextField("Session name", text: $title)
+                TextField(model.tr("field.sessionName"), text: $title)
                     .onChange(of: title) { titleWasEdited = true }
 
                 HStack {
-                    TextField("Working directory", text: $workingDirectory)
+                    TextField(model.tr("field.workingDirectory"), text: $workingDirectory)
                         .font(.system(.body, design: .monospaced))
-                    Button("Choose…") { chooseDirectory() }
+                    Button(model.tr("field.choose")) { chooseDirectory() }
                 }
 
                 if agent == .custom {
-                    TextField("Command", text: $customCommand, prompt: Text("e.g. my-agent --interactive"))
+                    TextField(model.tr("field.command"), text: $customCommand, prompt: Text(model.tr("field.commandExample")))
                         .font(.system(.body, design: .monospaced))
                 } else if agent != .shell {
-                    TextField("Arguments (optional)", text: $arguments)
+                    TextField(model.tr("field.arguments"), text: $arguments)
                         .font(.system(.body, design: .monospaced))
                 }
 
-                Toggle("Pin in sidebar", isOn: $pinSession)
+                Toggle(model.tr("field.pinInSidebar"), isOn: $pinSession)
             }
             .formStyle(.grouped)
             .scrollDisabled(true)
 
             if !model.installedAgents.contains(agent), agent != .custom {
-                Label("\(agent.displayName) was not found in the app PATH. MaxCLI will still try your login shell.", systemImage: "exclamationmark.triangle")
+                Label(model.trf("sheet.notFound", agent.displayName), systemImage: "exclamationmark.triangle")
                     .font(.caption)
                     .foregroundStyle(.orange)
             }
 
             HStack {
-                Text("⌘1…⌘9 switches sessions instantly")
+                Text(model.tr("sheet.shortcutHint"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Button("Create Session") { create() }
+                Button(model.tr("sheet.create")) { create() }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
                     .disabled(!isValid)

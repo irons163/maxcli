@@ -11,6 +11,7 @@ MaxCLI 是一個以 SwiftUI 製作的 macOS AI CLI 控制台。它把 Codex、Cl
 - 可複製 session，在同一 repo 快速開第二或第三個 agent。
 - 程序結束、失敗或送出 terminal bell 時會顯示狀態；背景 session 會標成 Needs attention。
 - 關閉後保存 session 設定；下次啟動可逐一或一次重新啟動，但不假裝能接回已不存在的程序。
+- 介面支援英文、繁體中文、簡體中文、法文、西班牙文、日文與韓文；預設跟隨系統語言，可在 sidebar 的 `•••` 選單或「Language」選單手動切換（未支援的系統語言會自動回退到英文）。
 - 純本機運作，不上傳 terminal 內容。
 
 內建啟動設定：Codex、Claude Code、Gemini CLI、Cursor Agent、GitHub Copilot CLI、OpenCode、Grok、一般 Shell，以及任意自訂命令。

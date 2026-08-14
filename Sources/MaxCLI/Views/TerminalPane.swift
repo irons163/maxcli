@@ -125,12 +125,12 @@ struct TerminalPane: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.white.opacity(0.55))
-                .help("Stop session")
+                .help(model.tr("help.stop"))
             } else {
                 Button {
                     model.restart(session.id)
                 } label: {
-                    Label("Start", systemImage: "play.fill")
+                    Label(model.tr("pane.start"), systemImage: "play.fill")
                 }
                 .buttonStyle(.plain)
                 .font(.caption)
@@ -145,7 +145,7 @@ struct TerminalPane: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(.white.opacity(0.45))
-            .help("Close session")
+            .help(model.tr("help.closeSession"))
             .onHover { hovering in
                 NSCursor.pointingHand.push()
                 if !hovering { NSCursor.pop() }
@@ -179,9 +179,9 @@ struct TerminalPane: View {
             Image(systemName: "terminal")
                 .font(.system(size: compact ? 25 : 34, weight: .light))
                 .foregroundStyle(.white.opacity(0.25))
-            Text("Session is not running")
+            Text(model.tr("pane.notRunning"))
                 .foregroundStyle(.white.opacity(0.55))
-            Button("Start \(session.agent.displayName)") {
+            Button(model.trf("pane.startAgent", session.agent.displayName)) {
                 model.start(session.id)
             }
             .buttonStyle(.borderedProminent)
@@ -192,8 +192,8 @@ struct TerminalPane: View {
 
     private var exitedOverlay: some View {
         HStack(spacing: 8) {
-            Text(session.activity == .failed ? "Process failed" : "Process exited")
-            Button("Restart") { model.restart(session.id) }
+            Text(session.activity == .failed ? model.tr("pane.processFailed") : model.tr("pane.processExited"))
+            Button(model.tr("pane.restart")) { model.restart(session.id) }
                 .buttonStyle(.borderless)
         }
         .font(.caption)

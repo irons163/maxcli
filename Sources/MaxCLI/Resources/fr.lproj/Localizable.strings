@@ -1,0 +1,129 @@
+/* Commandes du menu */
+"menu.newSession" = "Nouvelle session…";
+"menu.sessions" = "Sessions";
+"menu.quickSwitcher" = "Commutation rapide…";
+"menu.opencodeHistory" = "Historique opencode…";
+"menu.previousSession" = "Session précédente";
+"menu.nextSession" = "Session suivante";
+"menu.duplicateSession" = "Dupliquer la session";
+"menu.restartSession" = "Redémarrer la session";
+"menu.stopSession" = "Arrêter la session";
+"menu.sessionNumber" = "Session %d";
+"menu.layout" = "Disposition";
+"menu.layout.focus" = "Focus";
+"menu.layout.grid" = "Grille";
+"menu.layout.active" = "Actives";
+"menu.cycleLayout" = "Disposition suivante";
+"menu.language" = "Langue";
+"language.system" = "Suivre le système";
+
+/* Commun */
+"common.cancel" = "Annuler";
+
+/* Vue principale */
+"close.title" = "Fermer la session en cours ?";
+"close.confirm" = "Arrêter et fermer";
+"close.message" = "%@ est toujours en cours d'exécution. Son processus sera terminé.";
+"workspace.selectSession" = "Sélectionner une session";
+"workspace.noActive" = "Aucune session active";
+"help.opencodeHistory" = "Historique opencode (⌘⇧H)";
+"help.quickSwitcher" = "Commutation rapide (⌘K)";
+"help.layout" = "Disposition focus, grille ou actives";
+"help.newSession" = "Nouvelle session (⌘N)";
+
+/* Barre latérale */
+"metric.running" = "En cours";
+"metric.attention" = "Attention";
+"metric.total" = "Total";
+"search.placeholder" = "Rechercher des sessions";
+"filter.allAgents" = "Tous les agents";
+"sidebar.newSession" = "Nouvelle session";
+"sidebar.startAllStopped" = "Lancer tout ce qui est arrêté";
+"sidebar.stopAll" = "Tout arrêter";
+"context.pin" = "Épingler";
+"context.unpin" = "Désépingler";
+"context.duplicate" = "Dupliquer";
+"context.stop" = "Arrêter";
+"context.start" = "Lancer";
+"context.restart" = "Redémarrer";
+"context.copyLaunchCommand" = "Copier la commande de lancement";
+"context.revealInFinder" = "Révéler dans le Finder";
+"context.close" = "Fermer";
+"context.bindOpenCode" = "Lier à la session opencode";
+"context.noOpenCodeSessions" = "Aucune session opencode trouvée";
+"context.unbind" = "Délier";
+"context.boundToOpenCode" = "Lié à une session opencode";
+"sidebar.sessionActions" = "Actions de session";
+
+/* Volet terminal */
+"help.stop" = "Arrêter la session";
+"pane.start" = "Lancer";
+"help.closeSession" = "Fermer la session";
+"pane.notRunning" = "La session ne tourne pas";
+"pane.startAgent" = "Lancer %@";
+"pane.processFailed" = "Échec du processus";
+"pane.processExited" = "Processus terminé";
+"pane.restart" = "Redémarrer";
+
+/* Feuille Nouvelle session */
+"sheet.title" = "Nouvelle session";
+"sheet.subtitle" = "Lancez un CLI IA indépendant dans son propre espace de travail.";
+"sheet.agent" = "Agent";
+"sheet.icon" = "Icône";
+"help.agentDefault" = "Par défaut de l'agent";
+"field.sessionName" = "Nom de la session";
+"field.workingDirectory" = "Répertoire de travail";
+"field.choose" = "Choisir…";
+"field.command" = "Commande";
+"field.commandExample" = "ex. my-agent --interactive";
+"field.arguments" = "Arguments (facultatif)";
+"field.pinInSidebar" = "Épingler dans la barre latérale";
+"sheet.notFound" = "%@ introuvable dans le PATH de l'app. MaxCLI essaiera quand même votre shell de connexion.";
+"sheet.shortcutHint" = "⌘1…⌘9 bascule de session instantanée";
+"sheet.create" = "Créer la session";
+
+/* Commutation rapide */
+"quick.jump" = "Aller à une session…";
+
+/* Espace de travail vide */
+"empty.title" = "Votre centre de commande IA";
+"empty.subtitle" = "Exécutez Codex, Claude Code, Gemini et d'autres CLI côte à côte.\nChaque session garde son propre terminal et répertoire de travail.";
+"empty.createFirst" = "Créer la première session";
+"empty.new" = "⌘N Nouvelle";
+"empty.switch" = "⌘K Basculer";
+"empty.grid" = "⌘⇧G Grille";
+
+/* Activité de session */
+"activity.launching" = "Lancement";
+"activity.running" = "En cours";
+"activity.attention" = "À surveiller";
+"activity.stopped" = "Arrêtée";
+"activity.failed" = "Échec";
+
+/* Vue historique */
+"history.title" = "Historique opencode";
+"history.reload" = "Actualiser";
+"history.close" = "Fermer (Échap)";
+"history.search" = "Rechercher dans l'historique";
+"history.error" = "Impossible de lire l'historique";
+"history.retry" = "Réessayer";
+"history.empty" = "Aucun historique";
+"history.emptyDetail" = "Aucune conversation opencode trouvée pour l'instant\n%@";
+"history.loading" = "Chargement…";
+"history.loadFailed" = "Échec du chargement";
+"history.selectSession" = "Sélectionner une session";
+"history.you" = "Vous";
+"history.role.system" = "Système";
+"history.role.tool" = "Outil";
+"history.role.assistant" = "Assistant";
+"history.messageCount" = "%d messages";
+"history.toolCalls" = "%d appels d'outil";
+"history.reasoningBlocks" = "%d blocs de raisonnement";
+"history.files" = "%d fichiers";
+"history.otherContent" = "Autre contenu";
+"history.thinking" = "Réflexion";
+"history.thinkingProcess" = "Processus de réflexion";
+"history.file" = "fichier";
+"history.tool" = "outil";
+"history.input" = "Entrée";
+"history.output" = "Sortie";

@@ -1,0 +1,129 @@
+/* Menu commands */
+"menu.newSession" = "New Session…";
+"menu.sessions" = "Sessions";
+"menu.quickSwitcher" = "Quick Switcher…";
+"menu.opencodeHistory" = "opencode History…";
+"menu.previousSession" = "Previous Session";
+"menu.nextSession" = "Next Session";
+"menu.duplicateSession" = "Duplicate Session";
+"menu.restartSession" = "Restart Session";
+"menu.stopSession" = "Stop Session";
+"menu.sessionNumber" = "Session %d";
+"menu.layout" = "Layout";
+"menu.layout.focus" = "Focus";
+"menu.layout.grid" = "Grid";
+"menu.layout.active" = "Active";
+"menu.cycleLayout" = "Cycle Layout";
+"menu.language" = "Language";
+"language.system" = "Follow System";
+
+/* Common */
+"common.cancel" = "Cancel";
+
+/* Content view */
+"close.title" = "Close running session?";
+"close.confirm" = "Stop and Close";
+"close.message" = "%@ is still running. Its process will be terminated.";
+"workspace.selectSession" = "Select a session";
+"workspace.noActive" = "No active sessions";
+"help.opencodeHistory" = "opencode History (⌘⇧H)";
+"help.quickSwitcher" = "Quick switcher (⌘K)";
+"help.layout" = "Focus, grid or active layout";
+"help.newSession" = "New session (⌘N)";
+
+/* Sidebar */
+"metric.running" = "Running";
+"metric.attention" = "Attention";
+"metric.total" = "Total";
+"search.placeholder" = "Search sessions";
+"filter.allAgents" = "All agents";
+"sidebar.newSession" = "New Session";
+"sidebar.startAllStopped" = "Start All Stopped";
+"sidebar.stopAll" = "Stop All";
+"context.pin" = "Pin";
+"context.unpin" = "Unpin";
+"context.duplicate" = "Duplicate";
+"context.stop" = "Stop";
+"context.start" = "Start";
+"context.restart" = "Restart";
+"context.copyLaunchCommand" = "Copy Launch Command";
+"context.revealInFinder" = "Reveal in Finder";
+"context.close" = "Close";
+"context.bindOpenCode" = "Bind to opencode Session";
+"context.noOpenCodeSessions" = "No opencode sessions found";
+"context.unbind" = "Unbind";
+"context.boundToOpenCode" = "Bound to an opencode session";
+"sidebar.sessionActions" = "Session actions";
+
+/* Terminal pane */
+"help.stop" = "Stop session";
+"pane.start" = "Start";
+"help.closeSession" = "Close session";
+"pane.notRunning" = "Session is not running";
+"pane.startAgent" = "Start %@";
+"pane.processFailed" = "Process failed";
+"pane.processExited" = "Process exited";
+"pane.restart" = "Restart";
+
+/* New session sheet */
+"sheet.title" = "New Session";
+"sheet.subtitle" = "Launch an independent AI CLI in its own workspace.";
+"sheet.agent" = "Agent";
+"sheet.icon" = "Icon";
+"help.agentDefault" = "Agent default";
+"field.sessionName" = "Session name";
+"field.workingDirectory" = "Working directory";
+"field.choose" = "Choose…";
+"field.command" = "Command";
+"field.commandExample" = "e.g. my-agent --interactive";
+"field.arguments" = "Arguments (optional)";
+"field.pinInSidebar" = "Pin in sidebar";
+"sheet.notFound" = "%@ was not found in the app PATH. MaxCLI will still try your login shell.";
+"sheet.shortcutHint" = "⌘1…⌘9 switches sessions instantly";
+"sheet.create" = "Create Session";
+
+/* Quick switcher */
+"quick.jump" = "Jump to a session…";
+
+/* Empty workspace */
+"empty.title" = "Your AI command center";
+"empty.subtitle" = "Run Codex, Claude Code, Gemini and other CLIs side by side.\nEach session keeps its own terminal and working directory.";
+"empty.createFirst" = "Create First Session";
+"empty.new" = "⌘N New";
+"empty.switch" = "⌘K Switch";
+"empty.grid" = "⌘⇧G Grid";
+
+/* Session activity */
+"activity.launching" = "Launching";
+"activity.running" = "Running";
+"activity.attention" = "Needs attention";
+"activity.stopped" = "Stopped";
+"activity.failed" = "Failed";
+
+/* History view */
+"history.title" = "opencode History";
+"history.reload" = "Reload";
+"history.close" = "Close (Esc)";
+"history.search" = "Search history";
+"history.error" = "Unable to read history";
+"history.retry" = "Retry";
+"history.empty" = "No history";
+"history.emptyDetail" = "No opencode conversations found yet\n%@";
+"history.loading" = "Loading…";
+"history.loadFailed" = "Failed to load";
+"history.selectSession" = "Select a session";
+"history.you" = "You";
+"history.role.system" = "System";
+"history.role.tool" = "Tool";
+"history.role.assistant" = "Assistant";
+"history.messageCount" = "%d messages";
+"history.toolCalls" = "%d tool calls";
+"history.reasoningBlocks" = "%d reasoning blocks";
+"history.files" = "%d files";
+"history.otherContent" = "Other content";
+"history.thinking" = "Thinking";
+"history.thinkingProcess" = "Thinking process";
+"history.file" = "file";
+"history.tool" = "tool";
+"history.input" = "Input";
+"history.output" = "Output";
