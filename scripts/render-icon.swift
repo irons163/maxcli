@@ -63,7 +63,7 @@ func drawTile(frame: CGRect, selected: Bool, status: NSColor?, ctx: CGContext) {
     shadow.fill()
 
     let path = NSBezierPath(roundedRect: frame, xRadius: px(22), yRadius: px(22))
-    color(0.97, 0.98, 1.0).setFill()
+    color(0.055, 0.063, 0.078).setFill()
     path.fill()
 
     if selected {
@@ -75,7 +75,7 @@ func drawTile(frame: CGRect, selected: Bool, status: NSColor?, ctx: CGContext) {
     ctx.saveGState()
     path.addClip()
 
-    color(0.90, 0.92, 0.95).setFill()
+    color(1, 1, 1, 0.10).setFill()
     NSBezierPath(rect: CGRect(
         x: frame.minX, y: frame.maxY - px(36),
         width: frame.width, height: px(36)
@@ -89,7 +89,7 @@ func drawTile(frame: CGRect, selected: Bool, status: NSColor?, ctx: CGContext) {
         )).fill()
     }
 
-    color(0.66, 0.70, 0.78).setFill()
+    color(1, 1, 1, 0.48).setFill()
     let lineWidth = frame.width - px(56)
     var y = frame.maxY - px(72)
     for i in 0..<3 {
@@ -110,7 +110,7 @@ func drawTile(frame: CGRect, selected: Bool, status: NSColor?, ctx: CGContext) {
     chevron.lineWidth = pxb(7.5)
     chevron.lineCapStyle = .round
     chevron.lineJoinStyle = .round
-    ink.setStroke()
+    color(1, 1, 1, 0.92).setStroke()
     chevron.stroke()
     mint.setFill()
     NSBezierPath(roundedRect: CGRect(

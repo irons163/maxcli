@@ -156,11 +156,10 @@ struct SidebarView: View {
                         Button {
                             model.language = language
                         } label: {
-                            if model.language == language {
-                                Label(languageLabel(language), systemImage: "checkmark")
-                            } else {
-                                Text(languageLabel(language))
-                            }
+                            Label(
+                                languageLabel(language),
+                                systemImage: model.language == language ? "checkmark" : ""
+                            )
                         }
                     }
                 } label: {
