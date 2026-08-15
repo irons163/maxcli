@@ -52,6 +52,9 @@
 "context.bindOpenCode" = "Vincular a la sesión de opencode";
 "context.noOpenCodeSessions" = "No se encontraron sesiones de opencode";
 "context.unbind" = "Desvincular";
+"context.bindNeedsRestart" = "Reinicia para aplicar";
+"bind.restartTitle" = "¿Reiniciar para aplicar la vinculación?";
+"bind.restartMessage" = "La sesión está en ejecución. La nueva vinculación se aplicará tras el reinicio.";
 "context.boundToOpenCode" = "Vinculado a una sesión de opencode";
 "sidebar.sessionActions" = "Acciones de sesión";
 

@@ -52,6 +52,9 @@
 "context.bindOpenCode" = "綁定 opencode Session";
 "context.noOpenCodeSessions" = "找不到 opencode session";
 "context.unbind" = "解除綁定";
+"context.bindNeedsRestart" = "重新啟動後才會套用";
+"bind.restartTitle" = "要重新啟動以套用綁定嗎？";
+"bind.restartMessage" = "Session 正在執行，重新啟動後新的綁定才會生效。";
 "context.boundToOpenCode" = "已綁定 opencode session";
 "sidebar.sessionActions" = "Session 操作";
 

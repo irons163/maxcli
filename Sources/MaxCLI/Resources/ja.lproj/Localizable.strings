@@ -52,6 +52,9 @@
 "context.bindOpenCode" = "opencode セッションに紐付け";
 "context.noOpenCodeSessions" = "opencode セッションが見つかりません";
 "context.unbind" = "紐付け解除";
+"context.bindNeedsRestart" = "再起動後に反映されます";
+"bind.restartTitle" = "バインドを適用するために再起動しますか？";
+"bind.restartMessage" = "セッションは実行中です。再起動後に新しいバインドが反映されます。";
 "context.boundToOpenCode" = "opencode セッションに紐付け済み";
 "sidebar.sessionActions" = "セッション操作";
 

@@ -43,6 +43,18 @@ struct ContentView: View {
         } message: { session in
             Text(verbatim: model.trf("close.message", session.title))
         }
+        .alert(
+            model.tr("bind.restartTitle"),
+            isPresented: Binding(
+                get: { model.pendingBindRestart != nil },
+                set: { if !$0 { model.cancelBindRestart() } }
+            )
+        ) {
+            Button(model.tr("common.cancel"), role: .cancel) { model.cancelBindRestart() }
+            Button(model.tr("context.restart")) { model.confirmBindRestart() }
+        } message: {
+            Text(model.tr("bind.restartMessage"))
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
             model.stopAll()
         }

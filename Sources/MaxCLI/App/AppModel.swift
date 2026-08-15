@@ -4,6 +4,11 @@ import Foundation
 
 @MainActor
 final class AppModel: ObservableObject {
+    struct PendingBindRestart {
+        let sessionID: UUID
+        let target: String?
+    }
+
     @Published private(set) var sessions: [WorkspaceSession]
     @Published var selectedSessionID: UUID?
     @Published var layoutMode: LayoutMode = .focus
@@ -17,6 +22,7 @@ final class AppModel: ObservableObject {
     @Published private(set) var workingSessionIDs: Set<UUID> = []
     @Published private(set) var firstPrompts: [UUID: String] = [:]
     @Published private(set) var recentSessionsByDirectory: [String: [OpenCodeHistorySession]] = [:]
+    @Published var pendingBindRestart: PendingBindRestart?
 
     private(set) var runtimes: [UUID: TerminalRuntime] = [:]
     let installedAgents: Set<AgentKind>
@@ -253,6 +259,26 @@ final class AppModel: ObservableObject {
     }
 
     func bindOpenCodeSession(_ id: UUID, to opencodeSessionID: String?) {
+        guard let session = session(id), session.opencodeSessionID != opencodeSessionID else { return }
+        if runtimes[id]?.isRunning == true {
+            pendingBindRestart = PendingBindRestart(sessionID: id, target: opencodeSessionID)
+            return
+        }
+        applyOpenCodeBinding(id, to: opencodeSessionID)
+    }
+
+    func confirmBindRestart() {
+        guard let pending = pendingBindRestart else { return }
+        pendingBindRestart = nil
+        applyOpenCodeBinding(pending.sessionID, to: pending.target)
+        restart(pending.sessionID)
+    }
+
+    func cancelBindRestart() {
+        pendingBindRestart = nil
+    }
+
+    private func applyOpenCodeBinding(_ id: UUID, to opencodeSessionID: String?) {
         updateSession(id) { $0.opencodeSessionID = opencodeSessionID }
         persist()
     }

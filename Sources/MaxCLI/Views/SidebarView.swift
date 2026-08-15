@@ -114,6 +114,12 @@ struct SidebarView: View {
                                         model.bindOpenCodeSession(session.id, to: nil)
                                     }
                                 }
+                                if model.runtime(for: session.id)?.isRunning == true {
+                                    Divider()
+                                    Text(model.tr("context.bindNeedsRestart"))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
                         Divider()
