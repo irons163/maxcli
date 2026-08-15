@@ -3,6 +3,9 @@
 "menu.sessions" = "세션";
 "menu.quickSwitcher" = "빠른 전환…";
 "menu.opencodeHistory" = "opencode 기록…";
+"menu.opencodeAuth" = "opencode 인증";
+"menu.opencodeLogin" = "로그인…";
+"menu.opencodeLogout" = "로그아웃";
 "menu.previousSession" = "이전 세션";
 "menu.nextSession" = "다음 세션";
 "menu.duplicateSession" = "세션 복제";

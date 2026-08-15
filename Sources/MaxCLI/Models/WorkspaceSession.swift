@@ -34,6 +34,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
     var lastActivatedAt: Date
     var lastActivityAt: Date?
     var activity: SessionActivity
+    var isTransient: Bool
 
     init(
         id: UUID = UUID(),
@@ -49,7 +50,8 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
         createdAt: Date = .now,
         lastActivatedAt: Date = .now,
         lastActivityAt: Date? = nil,
-        activity: SessionActivity = .launching
+        activity: SessionActivity = .launching,
+        isTransient: Bool = false
     ) {
         self.id = id
         self.title = title
@@ -65,6 +67,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
         self.lastActivatedAt = lastActivatedAt
         self.lastActivityAt = lastActivityAt
         self.activity = activity
+        self.isTransient = isTransient
     }
 
     var directoryName: String {

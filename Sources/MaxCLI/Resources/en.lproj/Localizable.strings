@@ -3,6 +3,9 @@
 "menu.sessions" = "Sessions";
 "menu.quickSwitcher" = "Quick Switcher…";
 "menu.opencodeHistory" = "opencode History…";
+"menu.opencodeAuth" = "opencode Auth";
+"menu.opencodeLogin" = "Login…";
+"menu.opencodeLogout" = "Logout";
 "menu.previousSession" = "Previous Session";
 "menu.nextSession" = "Next Session";
 "menu.duplicateSession" = "Duplicate Session";

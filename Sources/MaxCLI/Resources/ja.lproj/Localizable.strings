@@ -3,6 +3,9 @@
 "menu.sessions" = "セッション";
 "menu.quickSwitcher" = "クイックスイッチャー…";
 "menu.opencodeHistory" = "opencode 履歴…";
+"menu.opencodeAuth" = "opencode 認証";
+"menu.opencodeLogin" = "ログイン…";
+"menu.opencodeLogout" = "ログアウト";
 "menu.previousSession" = "前のセッション";
 "menu.nextSession" = "次のセッション";
 "menu.duplicateSession" = "セッションを複製";

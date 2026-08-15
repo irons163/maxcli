@@ -38,6 +38,21 @@ struct MaxCLIApp: App {
                 }
                 .keyboardShortcut("h", modifiers: [.command, .shift])
 
+                Menu {
+                    Button {
+                        model.runOpenCodeAuth("auth login")
+                    } label: {
+                        Text(model.tr("menu.opencodeLogin"))
+                    }
+                    Button {
+                        model.runOpenCodeAuth("auth logout")
+                    } label: {
+                        Text(model.tr("menu.opencodeLogout"))
+                    }
+                } label: {
+                    Text(model.tr("menu.opencodeAuth"))
+                }
+
                 Divider()
 
                 Button {

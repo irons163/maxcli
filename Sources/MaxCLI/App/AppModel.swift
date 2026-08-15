@@ -142,6 +142,17 @@ final class AppModel: ObservableObject {
         runtimes[sessionID]
     }
 
+    func runOpenCodeAuth(_ argument: String) {
+        let session = WorkspaceSession(
+            title: "opencode \(argument)",
+            agent: .opencode,
+            workingDirectory: FileManager.default.homeDirectoryForCurrentUser.path,
+            arguments: argument,
+            isTransient: true
+        )
+        addSession(session)
+    }
+
     func addSession(_ session: WorkspaceSession) {
         var newSession = session
         newSession.activity = .launching
@@ -286,6 +297,7 @@ final class AppModel: ObservableObject {
     private func autoBindOpenCodeSessionIfNeeded(_ id: UUID) {
         guard let session = session(id),
               session.agent == .opencode,
+              !session.isTransient,
               session.opencodeSessionID == nil,
               !sessions.contains(where: { $0.id != id && $0.workingDirectory == session.workingDirectory })
         else { return }
@@ -298,6 +310,7 @@ final class AppModel: ObservableObject {
         let unbound = sessions
             .filter {
                 $0.agent == .opencode
+                    && !$0.isTransient
                     && $0.opencodeSessionID == nil
                     && runtimes[$0.id]?.isRunning == true
             }
@@ -381,6 +394,10 @@ final class AppModel: ObservableObject {
         case .title:
             break
         case let .terminated(exitCode):
+            if session(id)?.isTransient == true {
+                close(id)
+                return
+            }
             let wasManual = manuallyStopping.remove(id) != nil
             pendingOutputBytes[id] = nil
             pendingActivityAt[id] = nil
@@ -532,6 +549,6 @@ final class AppModel: ObservableObject {
     }
 
     private func persist() {
-        persistence.save(sessions)
+        persistence.save(sessions.filter { !$0.isTransient })
     }
 }

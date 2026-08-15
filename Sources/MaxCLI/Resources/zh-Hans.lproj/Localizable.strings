@@ -3,6 +3,9 @@
 "menu.sessions" = "Sessions";
 "menu.quickSwitcher" = "快速切换…";
 "menu.opencodeHistory" = "opencode 历史…";
+"menu.opencodeAuth" = "opencode 登录";
+"menu.opencodeLogin" = "登录…";
+"menu.opencodeLogout" = "登出";
 "menu.previousSession" = "上一个 Session";
 "menu.nextSession" = "下一个 Session";
 "menu.duplicateSession" = "复制 Session";
