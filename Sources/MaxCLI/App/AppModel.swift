@@ -30,6 +30,7 @@ final class AppModel: ObservableObject {
     private var outputHistory: [UUID: [Int]] = [:]
     private var idleTicks: [UUID: Int] = [:]
     private var lastUserInputAt: [UUID: Date] = [:]
+    private var launchDates: [UUID: Date] = [:]
     private static let workingByteThreshold = 400
     private static let idleByteThreshold = 100
     private static let idleTickLimit = 4
@@ -151,6 +152,7 @@ final class AppModel: ObservableObject {
             return
         }
 
+        launchDates[id] = .now
         autoBindOpenCodeSessionIfNeeded(id)
         guard let latestSession = session(id) else { return }
         runtimes[id] = nil
@@ -258,13 +260,46 @@ final class AppModel: ObservableObject {
     private func autoBindOpenCodeSessionIfNeeded(_ id: UUID) {
         guard let session = session(id),
               session.agent == .opencode,
-              session.opencodeSessionID == nil
+              session.opencodeSessionID == nil,
+              !sessions.contains(where: { $0.id != id && $0.workingDirectory == session.workingDirectory })
         else { return }
         guard let latestID = try? OpenCodeHistoryStore.latestSessionID(directory: session.workingDirectory) else { return }
         updateSession(id) { $0.opencodeSessionID = latestID }
         persist()
     }
-
+    private func detectOpenCodeBindings(_ recentSessions: [String: [OpenCodeHistorySession]]) {
+        var taken = Set(sessions.compactMap(\.opencodeSessionID))
+        let unbound = sessions
+            .filter {
+                $0.agent == .opencode
+                    && $0.opencodeSessionID == nil
+                    && runtimes[$0.id]?.isRunning == true
+            }
+            .sorted {
+                (launchDates[$0.id] ?? .distantPast) < (launchDates[$1.id] ?? .distantPast)
+            }
+        for session in unbound {
+            guard let launch = launchDates[session.id] else { continue }
+            let match = recentSessions[session.workingDirectory]?
+                .filter {
+                    !$0.isSubagent
+                    && !taken.contains($0.id)
+                    && ($0.timeCreated >= launch || $0.timeUpdated >= launch)
+                }
+                .sorted(by: {
+                    let aNew = $0.timeCreated >= launch
+                    let bNew = $1.timeCreated >= launch
+                    if aNew != bNew { return aNew }
+                    return aNew ? $0.timeCreated < $1.timeCreated : $0.timeUpdated < $1.timeUpdated
+                })
+                .first
+            if let match {
+                updateSession(session.id) { $0.opencodeSessionID = match.id }
+                taken.insert(match.id)
+                persist()
+            }
+        }
+    }
     func stopAll() {
         for session in sessions where runtimes[session.id]?.isRunning == true {
             stop(session.id)
@@ -326,6 +361,7 @@ final class AppModel: ObservableObject {
             lastFocusAt[id] = nil
             outputHistory[id] = nil
             lastUserInputAt[id] = nil
+            launchDates[id] = nil
             updateSession(id) { session in
                 session.lastActivityAt = .now
                 if wasManual {
@@ -437,6 +473,7 @@ final class AppModel: ObservableObject {
         if recentSessions != recentSessionsByDirectory {
             recentSessionsByDirectory = recentSessions
         }
+        detectOpenCodeBindings(recentSessions)
     }
 
     private func session(_ id: UUID) -> WorkspaceSession? {
