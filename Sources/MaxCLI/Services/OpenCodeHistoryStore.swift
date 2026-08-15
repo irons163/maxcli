@@ -133,40 +133,49 @@ enum OpenCodeHistoryStore {
     static func firstUserPrompt(directory: String) throws -> String? {
         try withConnection { db in
             guard let sessionID = try latestSessionID(db: db, directory: directory) else { return nil }
+            return try firstUserText(db: db, sessionID: sessionID)
+        }
+    }
 
-            var messageID: String?
-            let messageSQL = """
-                SELECT id, data FROM message
-                WHERE session_id = ?
-                ORDER BY time_created ASC, id ASC
-                """
-            try query(db, sql: messageSQL, bindings: [sessionID]) { columns in
-                guard messageID == nil,
-                      decodeJSON(columns[1])["role"] as? String == "user"
-                else { return }
-                messageID = columns[0]
-            }
-            guard let messageID else { return nil }
+    static func firstUserPrompt(sessionID: String) throws -> String? {
+        try withConnection { db in
+            try firstUserText(db: db, sessionID: sessionID)
+        }
+    }
 
-            var text: String?
-            let partSQL = """
-                SELECT data FROM part
-                WHERE message_id = ?
-                ORDER BY time_created ASC, id ASC
-                """
-            try query(db, sql: partSQL, bindings: [messageID]) { columns in
-                guard text == nil else { return }
-                let data = decodeJSON(columns[0])
-                guard data["type"] as? String == "text",
-                      let value = data["text"] as? String,
-                      !(data["synthetic"] as? Bool ?? false),
-                      !(data["ignored"] as? Bool ?? false)
-                else { return }
-                text = value
-            }
-            return text.map {
-                $0.split(whereSeparator: \.isWhitespace).joined(separator: " ")
-            }
+    private static func firstUserText(db: OpaquePointer, sessionID: String) throws -> String? {
+        var messageID: String?
+        let messageSQL = """
+            SELECT id, data FROM message
+            WHERE session_id = ?
+            ORDER BY time_created ASC, id ASC
+            """
+        try query(db, sql: messageSQL, bindings: [sessionID]) { columns in
+            guard messageID == nil,
+                  decodeJSON(columns[1])["role"] as? String == "user"
+            else { return }
+            messageID = columns[0]
+        }
+        guard let messageID else { return nil }
+
+        var text: String?
+        let partSQL = """
+            SELECT data FROM part
+            WHERE message_id = ?
+            ORDER BY time_created ASC, id ASC
+            """
+        try query(db, sql: partSQL, bindings: [messageID]) { columns in
+            guard text == nil else { return }
+            let data = decodeJSON(columns[0])
+            guard data["type"] as? String == "text",
+                  let value = data["text"] as? String,
+                  !(data["synthetic"] as? Bool ?? false),
+                  !(data["ignored"] as? Bool ?? false)
+            else { return }
+            text = value
+        }
+        return text.map {
+            $0.split(whereSeparator: \.isWhitespace).joined(separator: " ")
         }
     }
 

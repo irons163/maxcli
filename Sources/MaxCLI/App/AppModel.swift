@@ -458,15 +458,19 @@ final class AppModel: ObservableObject {
     }
 
     private func refreshFirstPrompts() {
-        let directories = Array(Set(sessions.map(\.workingDirectory)))
+        let sessionSnapshot = sessions
         Task.detached(priority: .utility) { [weak self] in
-            var promptsByDirectory: [String: String] = [:]
-            for directory in directories {
-                let prompt = (try? OpenCodeHistoryStore.firstUserPrompt(directory: directory)) ?? nil
-                promptsByDirectory[directory] = prompt ?? ""
+            var promptsBySessionID: [UUID: String] = [:]
+            for session in sessionSnapshot {
+                guard let bound = session.opencodeSessionID else { continue }
+                let prompt = (try? OpenCodeHistoryStore.firstUserPrompt(sessionID: bound)) ?? nil
+                if let prompt, !prompt.isEmpty {
+                    promptsBySessionID[session.id] = prompt
+                }
             }
+            let directories = Array(Set(sessionSnapshot.map(\.workingDirectory)))
             let recentSessions = Self.groupRecentSessions(by: directories)
-            await self?.applyHistory(promptsByDirectory, recentSessions)
+            await self?.applyHistory(promptsBySessionID, recentSessions)
         }
     }
 
@@ -484,17 +488,11 @@ final class AppModel: ObservableObject {
 
     @MainActor
     private func applyHistory(
-        _ promptsByDirectory: [String: String],
+        _ promptsBySessionID: [UUID: String],
         _ recentSessions: [String: [OpenCodeHistorySession]]
     ) {
-        var map: [UUID: String] = [:]
-        for session in sessions {
-            if let prompt = promptsByDirectory[session.workingDirectory], !prompt.isEmpty {
-                map[session.id] = prompt
-            }
-        }
-        if map != firstPrompts {
-            firstPrompts = map
+        if promptsBySessionID != firstPrompts {
+            firstPrompts = promptsBySessionID
         }
         if idSequenceChanged(recentSessions, recentSessionsByDirectory) {
             recentSessionsByDirectory = recentSessions
