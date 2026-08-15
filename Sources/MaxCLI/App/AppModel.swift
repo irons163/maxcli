@@ -470,10 +470,21 @@ final class AppModel: ObservableObject {
         if map != firstPrompts {
             firstPrompts = map
         }
-        if recentSessions != recentSessionsByDirectory {
+        if idSequenceChanged(recentSessions, recentSessionsByDirectory) {
             recentSessionsByDirectory = recentSessions
         }
         detectOpenCodeBindings(recentSessions)
+    }
+
+    private func idSequenceChanged(
+        _ lhs: [String: [OpenCodeHistorySession]],
+        _ rhs: [String: [OpenCodeHistorySession]]
+    ) -> Bool {
+        if Set(lhs.keys) != Set(rhs.keys) { return true }
+        for (directory, sessions) in lhs {
+            if sessions.map(\.id) != (rhs[directory] ?? []).map(\.id) { return true }
+        }
+        return false
     }
 
     private func session(_ id: UUID) -> WorkspaceSession? {
