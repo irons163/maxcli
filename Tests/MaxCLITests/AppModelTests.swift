@@ -157,4 +157,96 @@ final class AppModelTests: XCTestCase {
 
         XCTAssertEqual(model.sessions[0].lastActivityAt, baseline)
     }
+
+    // MARK: - Persistence resilience
+
+    func testLoadsLegacyFormatWithoutNewFields() throws {
+        let suite = "MaxCLI.AppModelTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let id = UUID().uuidString
+        let now = Date().timeIntervalSinceReferenceDate
+        let legacy: [[String: Any]] = [
+            [
+                "id": id,
+                "title": "Legacy Session",
+                "agent": "opencode",
+                "workingDirectory": "/tmp/legacy",
+                "arguments": "",
+                "customCommand": "",
+                "isPinned": false,
+                "createdAt": now,
+                "lastActivatedAt": now,
+                "activity": "running",
+            ]
+        ]
+        defaults.set(try JSONSerialization.data(withJSONObject: legacy), forKey: "maxcli.sessions.v1")
+
+        let result = SessionPersistence(defaults: defaults).load()
+
+        XCTAssertFalse(result.decodeFailed)
+        let session = try XCTUnwrap(result.sessions.first)
+        XCTAssertEqual(session.id.uuidString, id)
+        XCTAssertEqual(session.title, "Legacy Session")
+        XCTAssertEqual(session.agent, .opencode)
+        XCTAssertEqual(session.workingDirectory, "/tmp/legacy")
+        XCTAssertEqual(session.activity, .stopped)
+        XCTAssertFalse(session.isTransient)
+        XCTAssertFalse(session.isPinned)
+        XCTAssertNil(session.manualOrder)
+    }
+
+    func testSavePreservesPreviousDataAsBackup() throws {
+        let suite = "MaxCLI.AppModelTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let persistence = SessionPersistence(defaults: defaults)
+
+        persistence.save([makeSession(title: "First")])
+        persistence.save([makeSession(title: "Second")])
+
+        let result = persistence.load()
+        XCTAssertEqual(result.sessions.map(\.title), ["Second"])
+        let backupData = try XCTUnwrap(defaults.data(forKey: "maxcli.sessions.v1.backup"))
+        let backup = try JSONDecoder().decode([WorkspaceSession].self, from: backupData)
+        XCTAssertEqual(backup.map(\.title), ["First"])
+    }
+
+    func testLoadFallsBackToBackupWhenPrimaryCorrupted() throws {
+        let suite = "MaxCLI.AppModelTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let persistence = SessionPersistence(defaults: defaults)
+
+        persistence.save([makeSession(title: "First")])
+        persistence.save([makeSession(title: "Second")])
+        defaults.set(Data("not json".utf8), forKey: "maxcli.sessions.v1")
+
+        let result = persistence.load()
+
+        XCTAssertTrue(result.decodeFailed)
+        XCTAssertEqual(result.sessions.map(\.title), ["First"])
+    }
+
+    func testAppModelRefusesToOverwriteUndecodableStore() throws {
+        let suite = "MaxCLI.AppModelTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let raw = Data("not json".utf8)
+        defaults.set(raw, forKey: "maxcli.sessions.v1")
+
+        let model = AppModel(
+            persistence: SessionPersistence(defaults: defaults),
+            executableLocator: ExecutableLocator()
+        )
+        XCTAssertTrue(model.sessions.isEmpty)
+
+        model.close(UUID())
+        XCTAssertEqual(defaults.data(forKey: "maxcli.sessions.v1"), raw)
+
+        model.addSession(makeSession(title: "New"))
+        let loaded = SessionPersistence(defaults: defaults).load()
+        XCTAssertEqual(loaded.sessions.map(\.title), ["New"])
+    }
 }

@@ -27,6 +27,7 @@ final class AppModel: ObservableObject {
     private(set) var runtimes: [UUID: TerminalRuntime] = [:]
     let installedAgents: Set<AgentKind>
     private let persistence: SessionPersistence
+    private var canPersistSafely: Bool
     private var cancellables = Set<AnyCancellable>()
     private var manuallyStopping = Set<UUID>()
     private var runtimeGenerations: [UUID: UUID] = [:]
@@ -56,11 +57,12 @@ final class AppModel: ObservableObject {
         persistence: SessionPersistence = SessionPersistence(),
         executableLocator: ExecutableLocator = ExecutableLocator()
     ) {
-        let restoredSessions = persistence.load()
+        let loaded = persistence.load()
         self.persistence = persistence
+        self.canPersistSafely = !loaded.decodeFailed
         self.installedAgents = executableLocator.installedAgents
-        self.sessions = restoredSessions
-        self.selectedSessionID = restoredSessions.first?.id
+        self.sessions = loaded.sessions
+        self.selectedSessionID = loaded.sessions.first?.id
         let storedLanguage = UserDefaults.standard.string(forKey: Self.languageKey)
             .flatMap(AppLanguage.init(rawValue:))
         self.language = storedLanguage ?? .system
@@ -178,6 +180,7 @@ final class AppModel: ObservableObject {
     }
 
     func addSession(_ session: WorkspaceSession) {
+        canPersistSafely = true
         var newSession = session
         newSession.activity = .launching
         sessions.append(newSession)
@@ -573,6 +576,7 @@ final class AppModel: ObservableObject {
     }
 
     private func persist() {
+        guard canPersistSafely else { return }
         persistence.save(sessions.filter { !$0.isTransient })
     }
 }

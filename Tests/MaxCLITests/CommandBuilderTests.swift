@@ -99,7 +99,7 @@ final class CommandBuilderTests: XCTestCase {
             )
         ])
 
-        XCTAssertEqual(persistence.load().first?.activity, .stopped)
+        XCTAssertEqual(persistence.load().sessions.first?.activity, .stopped)
     }
 }
 
