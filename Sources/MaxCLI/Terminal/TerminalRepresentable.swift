@@ -47,6 +47,7 @@ struct TerminalRepresentable: NSViewRepresentable {
 
     func updateNSView(_ nsView: TerminalHostView, context: Context) {
         attach(in: nsView)
+        syncTerminalSize(to: nsView)
         guard isFocused else {
             context.coordinator.didFocus = false
             return
@@ -63,6 +64,18 @@ struct TerminalRepresentable: NSViewRepresentable {
 
     static func dismantleNSView(_ nsView: TerminalHostView, coordinator: Coordinator) {
         nsView.subviews.forEach { $0.removeFromSuperview() }
+    }
+
+    /// SwiftUI layout can hand the host a bogus huge frame during grid/focus
+    /// transitions (ScrollView proposals), which leaves the terminal and its
+    /// pty winsize reporting hundreds of rows/cols. opencode sizes its dialogs
+    /// from that reported size, so force the terminal back to the host's real
+    /// size on every update; setFrameSize triggers the fork's resize + pty
+    /// winsize update.
+    private func syncTerminalSize(to host: TerminalHostView) {
+        let terminal = runtime.terminalView
+        guard !host.bounds.isEmpty, host.bounds.size != terminal.frame.size else { return }
+        terminal.setFrameSize(host.bounds.size)
     }
 
     private func attach(in host: TerminalHostView) {
