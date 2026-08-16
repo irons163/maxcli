@@ -77,6 +77,12 @@ struct SidebarView: View {
                     )
                     .contentShape(Rectangle())
                     .onTapGesture { model.select(session.id) }
+                    .draggable(session.id.uuidString)
+                    .dropDestination(for: String.self) { items, _ in
+                        guard let droppedID = items.first.flatMap(UUID.init(uuidString:)) else { return false }
+                        model.moveSession(droppedID, before: session.id)
+                        return true
+                    }
                     .contextMenu {
                         Button(session.isPinned ? model.tr("context.unpin") : model.tr("context.pin")) {
                             model.togglePin(session.id)

@@ -111,9 +111,33 @@ final class AppModel: ObservableObject {
                 if lhsTime != rhsTime { return lhsTime > rhsTime }
                 return lhs.createdAt < rhs.createdAt
             case .focus, .grid:
+                let lhsOrder = lhs.manualOrder ?? Int.max
+                let rhsOrder = rhs.manualOrder ?? Int.max
+                if lhsOrder != rhsOrder { return lhsOrder < rhsOrder }
                 return lhs.createdAt < rhs.createdAt
             }
         }
+    }
+
+    func moveSession(_ id: UUID, before targetID: UUID) {
+        guard id != targetID else { return }
+        var ordered = sessions
+            .filter { !$0.isPinned }
+            .sorted { lhs, rhs in
+                let lhsOrder = lhs.manualOrder ?? Int.max
+                let rhsOrder = rhs.manualOrder ?? Int.max
+                if lhsOrder != rhsOrder { return lhsOrder < rhsOrder }
+                return lhs.createdAt < rhs.createdAt
+            }
+        guard let from = ordered.firstIndex(where: { $0.id == id }),
+              let to = ordered.firstIndex(where: { $0.id == targetID })
+        else { return }
+        let dragged = ordered.remove(at: from)
+        ordered.insert(dragged, at: from < to ? to - 1 : to)
+        for (index, session) in ordered.enumerated() {
+            updateSession(session.id) { $0.manualOrder = index }
+        }
+        persist()
     }
 
     var activeSessions: [WorkspaceSession] {

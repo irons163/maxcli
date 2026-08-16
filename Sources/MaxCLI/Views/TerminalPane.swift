@@ -6,6 +6,7 @@ struct TerminalPane: View {
     let session: WorkspaceSession
     let compact: Bool
     var onRequestClose: () -> Void = {}
+    var headerDragID: String? = nil
     @State private var isDropTargeted = false
 
     private var isSelected: Bool { model.selectedSessionID == session.id }
@@ -156,6 +157,20 @@ struct TerminalPane: View {
         .background(Color.white.opacity(isSelected ? 0.07 : 0.035))
         .contentShape(Rectangle())
         .onTapGesture { model.select(session.id) }
+        .modifier(DragSource(id: headerDragID))
+    }
+
+    private struct DragSource: ViewModifier {
+        let id: String?
+
+        @ViewBuilder
+        func body(content: Content) -> some View {
+            if let id {
+                content.draggable(id)
+            } else {
+                content
+            }
+        }
     }
 
     @ViewBuilder

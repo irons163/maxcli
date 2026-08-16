@@ -30,6 +30,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
     var iconName: String?
     var iconColorName: String?
     var isPinned: Bool
+    var manualOrder: Int?
     var createdAt: Date
     var lastActivatedAt: Date
     var lastActivityAt: Date?
@@ -47,6 +48,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
         iconName: String? = nil,
         iconColorName: String? = nil,
         isPinned: Bool = false,
+        manualOrder: Int? = nil,
         createdAt: Date = .now,
         lastActivatedAt: Date = .now,
         lastActivityAt: Date? = nil,
@@ -63,11 +65,58 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
         self.iconName = iconName
         self.iconColorName = iconColorName
         self.isPinned = isPinned
+        self.manualOrder = manualOrder
         self.createdAt = createdAt
         self.lastActivatedAt = lastActivatedAt
         self.lastActivityAt = lastActivityAt
         self.activity = activity
         self.isTransient = isTransient
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, title, agent, workingDirectory, arguments, customCommand
+        case opencodeSessionID, iconName, iconColorName, isPinned, manualOrder
+        case createdAt, lastActivatedAt, lastActivityAt, activity, isTransient
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        title = try c.decode(String.self, forKey: .title)
+        agent = try c.decode(AgentKind.self, forKey: .agent)
+        workingDirectory = try c.decode(String.self, forKey: .workingDirectory)
+        arguments = try c.decodeIfPresent(String.self, forKey: .arguments) ?? ""
+        customCommand = try c.decodeIfPresent(String.self, forKey: .customCommand) ?? ""
+        opencodeSessionID = try c.decodeIfPresent(String.self, forKey: .opencodeSessionID)
+        iconName = try c.decodeIfPresent(String.self, forKey: .iconName)
+        iconColorName = try c.decodeIfPresent(String.self, forKey: .iconColorName)
+        isPinned = try c.decodeIfPresent(Bool.self, forKey: .isPinned) ?? false
+        manualOrder = try c.decodeIfPresent(Int.self, forKey: .manualOrder)
+        createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt) ?? .now
+        lastActivatedAt = try c.decodeIfPresent(Date.self, forKey: .lastActivatedAt) ?? .now
+        lastActivityAt = try c.decodeIfPresent(Date.self, forKey: .lastActivityAt)
+        activity = try c.decodeIfPresent(SessionActivity.self, forKey: .activity) ?? .stopped
+        isTransient = try c.decodeIfPresent(Bool.self, forKey: .isTransient) ?? false
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(title, forKey: .title)
+        try c.encode(agent, forKey: .agent)
+        try c.encode(workingDirectory, forKey: .workingDirectory)
+        try c.encode(arguments, forKey: .arguments)
+        try c.encode(customCommand, forKey: .customCommand)
+        try c.encodeIfPresent(opencodeSessionID, forKey: .opencodeSessionID)
+        try c.encodeIfPresent(iconName, forKey: .iconName)
+        try c.encodeIfPresent(iconColorName, forKey: .iconColorName)
+        try c.encode(isPinned, forKey: .isPinned)
+        try c.encodeIfPresent(manualOrder, forKey: .manualOrder)
+        try c.encode(createdAt, forKey: .createdAt)
+        try c.encode(lastActivatedAt, forKey: .lastActivatedAt)
+        try c.encodeIfPresent(lastActivityAt, forKey: .lastActivityAt)
+        try c.encode(activity, forKey: .activity)
+        try c.encode(isTransient, forKey: .isTransient)
     }
 
     var directoryName: String {
