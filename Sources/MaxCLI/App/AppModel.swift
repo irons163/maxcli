@@ -9,7 +9,7 @@ final class AppModel: ObservableObject {
         let target: String?
     }
 
-    @Published private(set) var sessions: [WorkspaceSession]
+    private(set) var sessions: [WorkspaceSession]
     @Published var selectedSessionID: UUID?
     @Published var layoutMode: LayoutMode = .focus
     @Published var searchText = ""
@@ -68,9 +68,6 @@ final class AppModel: ObservableObject {
         self.language = storedLanguage ?? .system
         $language
             .sink { language in UserDefaults.standard.setValue(language.rawValue, forKey: Self.languageKey) }
-            .store(in: &cancellables)
-        $sessions
-            .sink { [weak self] _ in self?.updateDockBadge() }
             .store(in: &cancellables)
         updateDockBadge()
         Task { [weak self] in
@@ -183,6 +180,7 @@ final class AppModel: ObservableObject {
         canPersistSafely = true
         var newSession = session
         newSession.activity = .launching
+        notifySessionsChanged()
         sessions.append(newSession)
         select(newSession.id)
         start(newSession.id)
@@ -243,6 +241,7 @@ final class AppModel: ObservableObject {
         }
         runtimes[id] = nil
         runtimeGenerations[id] = nil
+        notifySessionsChanged()
         sessions.removeAll { $0.id == id }
         if selectedSessionID == id {
             selectedSessionID = sortedSessions.first?.id
@@ -404,6 +403,7 @@ final class AppModel: ObservableObject {
             pendingActivityAt[id] = .now
             guard sessions.first(where: { $0.id == id })?.activity == .launching else { return }
             updateSession(id) { $0.activity = .running }
+            persist()
         case .userInput:
             lastUserInputAt[id] = .now
             return
@@ -415,11 +415,13 @@ final class AppModel: ObservableObject {
             guard selectedSessionID != id else { return }
             updateSession(id) { $0.activity = .attention }
             NSSound(named: "Glass")?.play()
+            persist()
         case let .directory(directory):
             guard FileManager.default.fileExists(atPath: directory) else { return }
             updateSession(id) { $0.workingDirectory = directory }
+            persist()
         case .title:
-            break
+            return
         case let .terminated(exitCode):
             if session(id)?.isTransient == true {
                 close(id)
@@ -450,6 +452,7 @@ final class AppModel: ObservableObject {
     }
 
     func sampleOutputActivity() {
+        let previousOrder = pendingActivityAt.isEmpty ? [] : sortedSessions.map(\.id)
         for (id, date) in pendingActivityAt {
             let recentlyFocused = lastFocusAt[id].map {
                 date.timeIntervalSince($0) < Self.focusGrace
@@ -458,7 +461,7 @@ final class AppModel: ObservableObject {
                 date.timeIntervalSince($0) < Self.userInteractionGrace
             } ?? false
             if !recentlyFocused, !interacting {
-                updateSession(id) { $0.lastActivityAt = date }
+                updateSessionQuietly(id) { $0.lastActivityAt = date }
             }
         }
         pendingActivityAt.removeAll()
@@ -498,6 +501,9 @@ final class AppModel: ObservableObject {
         }
         if working != workingSessionIDs {
             workingSessionIDs = working
+        }
+        if !previousOrder.isEmpty, sortedSessions.map(\.id) != previousOrder {
+            objectWillChange.send()
         }
     }
 
@@ -561,7 +567,18 @@ final class AppModel: ObservableObject {
 
     private func updateSession(_ id: UUID, change: (inout WorkspaceSession) -> Void) {
         guard let index = sessions.firstIndex(where: { $0.id == id }) else { return }
+        notifySessionsChanged()
         change(&sessions[index])
+    }
+
+    private func updateSessionQuietly(_ id: UUID, change: (inout WorkspaceSession) -> Void) {
+        guard let index = sessions.firstIndex(where: { $0.id == id }) else { return }
+        change(&sessions[index])
+    }
+
+    private func notifySessionsChanged() {
+        objectWillChange.send()
+        updateDockBadge()
     }
 
     private func uniqueTitle(from title: String) -> String {
