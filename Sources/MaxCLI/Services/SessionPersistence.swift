@@ -60,10 +60,19 @@ struct SessionPersistence {
         return salvaged.isEmpty ? nil : salvaged
     }
 
+    /// One-shot arguments that must never survive a relaunch. Older builds
+    /// persisted auth sessions as regular ones, leaving their arguments
+    /// stuck on every restart.
+    private static let oneShotArguments: Set<String> = ["auth login", "auth logout"]
+
     private func restored(_ sessions: [WorkspaceSession]) -> [WorkspaceSession] {
         sessions.filter { !$0.isTransient }.map { session in
             var restored = session
             restored.activity = .stopped
+            let args = restored.arguments.trimmingCharacters(in: .whitespacesAndNewlines)
+            if Self.oneShotArguments.contains(args) {
+                restored.arguments = ""
+            }
             return restored
         }
     }
