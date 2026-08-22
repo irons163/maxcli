@@ -61,7 +61,7 @@ struct SessionPersistence {
     }
 
     private func restored(_ sessions: [WorkspaceSession]) -> [WorkspaceSession] {
-        sessions.map { session in
+        sessions.filter { !$0.isTransient }.map { session in
             var restored = session
             restored.activity = .stopped
             return restored
