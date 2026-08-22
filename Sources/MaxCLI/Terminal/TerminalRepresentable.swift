@@ -16,9 +16,15 @@ final class TerminalHostView: NSView {
     override func layout() {
         super.layout()
         guard let terminal = subviews.first, !bounds.isEmpty else { return }
-        let frame = NSRect(origin: .zero, size: bounds.size)
-        if terminal.frame != frame {
-            terminal.frame = frame
+        Self.resize(terminal, to: bounds.size)
+    }
+
+    static func resize(_ terminal: NSView, to size: NSSize) {
+        if terminal.frame.size != size {
+            terminal.setFrameSize(size)
+        }
+        if terminal.frame.origin != .zero {
+            terminal.setFrameOrigin(.zero)
         }
     }
 
@@ -79,18 +85,13 @@ struct TerminalRepresentable: NSViewRepresentable {
     /// transitions (ScrollView proposals), which leaves the terminal and its
     /// pty winsize reporting hundreds of rows/cols. opencode sizes its dialogs
     /// from that reported size, so force the terminal back to the host's real
-    /// size on every update; setFrameSize triggers the fork's resize + pty
-    /// winsize update.
+    /// size on every update. Resizing must go through setFrameSize so
+    /// SwiftTerm recomputes cols/rows, updates the pty and requests a redraw;
+    /// assigning frame directly bypasses all of that and leaves a black pane.
     private func syncTerminalFrame(to host: TerminalHostView) {
         let terminal = runtime.terminalView
         guard !host.bounds.isEmpty else { return }
-        let frame = NSRect(origin: .zero, size: host.bounds.size)
-        if terminal.frame != frame {
-            terminal.frame = frame
-        }
-        if terminal.frame.size != frame.size {
-            terminal.setFrameSize(frame.size)
-        }
+        TerminalHostView.resize(terminal, to: host.bounds.size)
     }
 
     private func attach(in host: TerminalHostView) {
@@ -98,11 +99,11 @@ struct TerminalRepresentable: NSViewRepresentable {
         let moved = terminal.superview !== host
         if moved {
             terminal.removeFromSuperview()
-            if !host.bounds.isEmpty {
-                terminal.frame = NSRect(origin: .zero, size: host.bounds.size)
-            }
             terminal.autoresizingMask = [.width, .height]
             host.addSubview(terminal)
+            if !host.bounds.isEmpty {
+                TerminalHostView.resize(terminal, to: host.bounds.size)
+            }
         }
         terminal.needsDisplay = true
         if moved {
