@@ -24,7 +24,11 @@ struct StatusDot: View {
             .stroke(color, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
             .rotationEffect(.degrees(spinning ? 360 : 0))
             .animation(.linear(duration: 0.8).repeatForever(autoreverses: false), value: spinning)
-            .onAppear { spinning = true }
+            .onAppear {
+                guard !spinning else { return }
+                spinning = true
+            }
+            .onDisappear { spinning = false }
     }
 
     var body: some View {
