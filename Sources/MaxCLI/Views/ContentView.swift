@@ -80,6 +80,7 @@ struct ContentView: View {
             TerminalPane(session: session, compact: false) {
                 requestClose(session)
             }
+            .id(session.id)
             .ignoresSafeArea(.container, edges: .bottom)
         } else {
             ContentUnavailableView(model.tr("workspace.selectSession"), systemImage: "terminal")

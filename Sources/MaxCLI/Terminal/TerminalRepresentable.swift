@@ -13,6 +13,15 @@ final class TerminalHostView: NSView {
         }
     }
 
+    override func layout() {
+        super.layout()
+        guard let terminal = subviews.first, !bounds.isEmpty else { return }
+        let frame = NSRect(origin: .zero, size: bounds.size)
+        if terminal.frame != frame {
+            terminal.frame = frame
+        }
+    }
+
     /// Layer-backed terminal views lose their backing contents when the
     /// hierarchy is reparented during a layout switch, and a `needsDisplay`
     /// set while the view has no window is swallowed. Clear the stale layer
@@ -47,7 +56,7 @@ struct TerminalRepresentable: NSViewRepresentable {
 
     func updateNSView(_ nsView: TerminalHostView, context: Context) {
         attach(in: nsView)
-        syncTerminalSize(to: nsView)
+        syncTerminalFrame(to: nsView)
         guard isFocused else {
             context.coordinator.didFocus = false
             return
@@ -72,10 +81,16 @@ struct TerminalRepresentable: NSViewRepresentable {
     /// from that reported size, so force the terminal back to the host's real
     /// size on every update; setFrameSize triggers the fork's resize + pty
     /// winsize update.
-    private func syncTerminalSize(to host: TerminalHostView) {
+    private func syncTerminalFrame(to host: TerminalHostView) {
         let terminal = runtime.terminalView
-        guard !host.bounds.isEmpty, host.bounds.size != terminal.frame.size else { return }
-        terminal.setFrameSize(host.bounds.size)
+        guard !host.bounds.isEmpty else { return }
+        let frame = NSRect(origin: .zero, size: host.bounds.size)
+        if terminal.frame != frame {
+            terminal.frame = frame
+        }
+        if terminal.frame.size != frame.size {
+            terminal.setFrameSize(frame.size)
+        }
     }
 
     private func attach(in host: TerminalHostView) {
@@ -84,7 +99,7 @@ struct TerminalRepresentable: NSViewRepresentable {
         if moved {
             terminal.removeFromSuperview()
             if !host.bounds.isEmpty {
-                terminal.frame = host.bounds
+                terminal.frame = NSRect(origin: .zero, size: host.bounds.size)
             }
             terminal.autoresizingMask = [.width, .height]
             host.addSubview(terminal)
