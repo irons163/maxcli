@@ -87,6 +87,7 @@
 "sheet.notFound" = "%@ was not found in the app PATH. MaxCLI will still try your login shell.";
 "sheet.shortcutHint" = "⌘1…⌘9 switches sessions instantly";
 "sheet.create" = "Create Session";
+"sheet.commandRequired" = "Enter a command to enable Create Session.";
 
 /* Quick switcher */
 "quick.jump" = "Jump to a session…";
@@ -133,3 +134,5 @@
 "history.tool" = "tool";
 "history.input" = "Input";
 "history.output" = "Output";
+"field.model" = "Model";
+"field.modelDefault" = "Default (chosen by opencode)";

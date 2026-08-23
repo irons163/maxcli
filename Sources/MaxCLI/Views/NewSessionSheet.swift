@@ -14,6 +14,8 @@ struct NewSessionSheet: View {
     @State private var iconColorName: String?
     @State private var pinSession = false
     @State private var titleWasEdited = false
+    @State private var availableModels: [String] = []
+    @State private var selectedModel: String?
 
     private let columns = [GridItem(.adaptive(minimum: 118), spacing: 8)]
     private static let iconChoices = [
@@ -77,6 +79,15 @@ struct NewSessionSheet: View {
                     TextField(model.tr("field.command"), text: $customCommand, prompt: Text(model.tr("field.commandExample")))
                         .font(.system(.body, design: .monospaced))
                 } else if agent != .shell {
+                    if agent == .opencode, !availableModels.isEmpty {
+                        Picker(model.tr("field.model"), selection: $selectedModel) {
+                            Text(model.tr("field.modelDefault")).tag(nil as String?)
+                            ForEach(availableModels, id: \.self) { item in
+                                Text(item).tag(item as String?)
+                            }
+                        }
+                        .onChange(of: selectedModel) { _, _ in applyModelSelection() }
+                    }
                     TextField(model.tr("field.arguments"), text: $arguments)
                         .font(.system(.body, design: .monospaced))
                 }
@@ -85,6 +96,13 @@ struct NewSessionSheet: View {
             }
             .formStyle(.grouped)
             .scrollDisabled(true)
+
+            if agent == .custom,
+               customCommand.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Label(model.tr("sheet.commandRequired"), systemImage: "text.cursor")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
             if !model.installedAgents.contains(agent), agent != .custom {
                 Label(model.trf("sheet.notFound", agent.displayName), systemImage: "exclamationmark.triangle")
@@ -105,8 +123,35 @@ struct NewSessionSheet: View {
         }
         .padding(22)
         .frame(width: 590)
-        .onAppear { updateSuggestedTitle() }
-        .onChange(of: agent) { updateSuggestedTitle() }
+        .onAppear {
+            updateSuggestedTitle()
+            loadModels()
+        }
+        .onChange(of: agent) {
+            updateSuggestedTitle()
+            loadModels()
+        }
+    }
+
+    private func loadModels() {
+        guard agent == .opencode, availableModels.isEmpty else { return }
+        Task {
+            availableModels = await OpenCodeModels.load()
+        }
+    }
+
+    /// Sync the arguments field with the model picker, replacing any model
+    /// flag the picker previously inserted while preserving other arguments.
+    private func applyModelSelection() {
+        var rest = arguments
+        if let range = rest.range(of: #"-m\s+\S+"#, options: .regularExpression) {
+            rest = rest.replacingCharacters(in: range, with: "").trimmingCharacters(in: .whitespaces)
+        }
+        if let selectedModel {
+            arguments = rest.isEmpty ? "-m \(selectedModel)" : "\(rest) -m \(selectedModel)"
+        } else {
+            arguments = rest
+        }
     }
 
     private func agentButton(_ item: AgentKind) -> some View {

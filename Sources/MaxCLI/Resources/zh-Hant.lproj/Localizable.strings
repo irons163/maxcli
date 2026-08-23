@@ -87,6 +87,7 @@
 "sheet.notFound" = "在 app 的 PATH 中找不到 %@。MaxCLI 仍會嘗試你的登入 shell。";
 "sheet.shortcutHint" = "⌘1…⌘9 立即切換 session";
 "sheet.create" = "建立 Session";
+"sheet.commandRequired" = "請輸入指令才能建立 Session。";
 
 /* 快速切換 */
 "quick.jump" = "跳到某個 session…";
@@ -133,3 +134,5 @@
 "history.tool" = "工具";
 "history.input" = "輸入";
 "history.output" = "輸出";
+"field.model" = "模型";
+"field.modelDefault" = "預設（由 opencode 決定）";

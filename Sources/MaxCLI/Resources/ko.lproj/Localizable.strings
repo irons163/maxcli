@@ -87,6 +87,7 @@
 "sheet.notFound" = "앱 PATH에서 %@을(를) 찾을 수 없습니다. 로그인 셸로 실행을 시도합니다.";
 "sheet.shortcutHint" = "⌘1…⌘9로 세션 즉시 전환";
 "sheet.create" = "세션 만들기";
+"sheet.commandRequired" = "세션을 만들려면 명령어를 입력하세요.";
 
 /* 빠른 전환 */
 "quick.jump" = "세션으로 이동…";
@@ -133,3 +134,5 @@
 "history.tool" = "도구";
 "history.input" = "입력";
 "history.output" = "출력";
+"field.model" = "모델";
+"field.modelDefault" = "기본값 (opencode가 선택)";

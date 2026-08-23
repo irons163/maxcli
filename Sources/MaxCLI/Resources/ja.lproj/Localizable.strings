@@ -87,6 +87,7 @@
 "sheet.notFound" = "app の PATH に %@ が見つかりません。ログインシェルでの実行を試みます。";
 "sheet.shortcutHint" = "⌘1…⌘9 でセッションを即時切り替え";
 "sheet.create" = "セッションを作成";
+"sheet.commandRequired" = "セッションを作成するにはコマンドを入力してください。";
 
 /* クイックスイッチャー */
 "quick.jump" = "セッションへジャンプ…";
@@ -133,3 +134,5 @@
 "history.tool" = "ツール";
 "history.input" = "入力";
 "history.output" = "出力";
+"field.model" = "モデル";
+"field.modelDefault" = "デフォルト（opencode が選択）";

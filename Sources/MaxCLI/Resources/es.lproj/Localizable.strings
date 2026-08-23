@@ -87,6 +87,7 @@
 "sheet.notFound" = "No se encontró %@ en el PATH de la app. MaxCLI intentará igualmente con tu shell de inicio de sesión.";
 "sheet.shortcutHint" = "⌘1…⌘9 cambia de sesión al instante";
 "sheet.create" = "Crear sesión";
+"sheet.commandRequired" = "Escribe un comando para habilitar Crear sesión.";
 
 /* Cambio rápido */
 "quick.jump" = "Ir a una sesión…";
@@ -133,3 +134,5 @@
 "history.tool" = "herramienta";
 "history.input" = "Entrada";
 "history.output" = "Salida";
+"field.model" = "Modelo";
+"field.modelDefault" = "Predeterminado (elegido por opencode)";
