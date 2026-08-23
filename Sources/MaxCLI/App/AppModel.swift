@@ -119,6 +119,10 @@ final class AppModel: ObservableObject {
     }
 
     func moveSession(_ id: UUID, before targetID: UUID) {
+        moveSession(id, relativeTo: targetID, after: false)
+    }
+
+    func moveSession(_ id: UUID, relativeTo targetID: UUID, after: Bool) {
         guard id != targetID else { return }
         var ordered = sessions
             .filter { !$0.isPinned }
@@ -132,7 +136,13 @@ final class AppModel: ObservableObject {
               let to = ordered.firstIndex(where: { $0.id == targetID })
         else { return }
         let dragged = ordered.remove(at: from)
-        ordered.insert(dragged, at: from < to ? to - 1 : to)
+        let insertIndex: Int
+        if from < to {
+            insertIndex = after ? to : to - 1
+        } else {
+            insertIndex = after ? to + 1 : to
+        }
+        ordered.insert(dragged, at: insertIndex)
         for (index, session) in ordered.enumerated() {
             updateSession(session.id) { $0.manualOrder = index }
         }

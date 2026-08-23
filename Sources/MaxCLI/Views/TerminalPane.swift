@@ -157,16 +157,19 @@ struct TerminalPane: View {
         .background(Color.white.opacity(isSelected ? 0.07 : 0.035))
         .contentShape(Rectangle())
         .onTapGesture { model.select(session.id) }
-        .modifier(DragSource(id: headerDragID))
+        .modifier(DragSource(id: headerDragID, session: session))
     }
 
     private struct DragSource: ViewModifier {
         let id: String?
+        let session: WorkspaceSession
 
         @ViewBuilder
         func body(content: Content) -> some View {
             if let id {
-                content.draggable(id)
+                content.draggable(id) {
+                    SessionDragPreview(session: session)
+                }
             } else {
                 content
             }

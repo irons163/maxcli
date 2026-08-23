@@ -3,6 +3,7 @@ import SwiftUI
 struct SidebarView: View {
     @EnvironmentObject private var model: AppModel
     let onRequestClose: (WorkspaceSession) -> Void
+    @State private var rowHeightByID: [UUID: CGFloat] = [:]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -77,10 +78,26 @@ struct SidebarView: View {
                     )
                     .contentShape(Rectangle())
                     .onTapGesture { model.select(session.id) }
-                    .draggable(session.id.uuidString)
-                    .dropDestination(for: String.self) { items, _ in
+                    .background {
+                        GeometryReader { geo in
+                            Color.clear
+                                .onAppear { rowHeightByID[session.id] = geo.size.height }
+                                .onChange(of: geo.size.height) { _, newHeight in
+                                    rowHeightByID[session.id] = newHeight
+                                }
+                        }
+                    }
+                    .draggable(session.id.uuidString) {
+                        SessionDragPreview(session: session)
+                    }
+                    .dropDestination(for: String.self) { items, location in
                         guard let droppedID = items.first.flatMap(UUID.init(uuidString:)) else { return false }
-                        model.moveSession(droppedID, before: session.id)
+                        let height = rowHeightByID[session.id] ?? 44
+                        model.moveSession(
+                            droppedID,
+                            relativeTo: session.id,
+                            after: location.y > height / 2
+                        )
                         return true
                     }
                     .contextMenu {
@@ -189,6 +206,29 @@ struct SidebarView: View {
 
     private func languageLabel(_ language: AppLanguage) -> String {
         language == .system ? model.tr("language.system") : language.displayName
+    }
+}
+
+struct SessionDragPreview: View {
+    let session: WorkspaceSession
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: session.symbolName)
+                .foregroundStyle(Color(nsColor: session.iconColor))
+                .frame(width: 22, height: 22)
+                .background(
+                    Color(nsColor: session.iconColor).opacity(0.13),
+                    in: RoundedRectangle(cornerRadius: 5)
+                )
+            Text(session.title)
+                .font(.system(size: 12, weight: .medium))
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
     }
 }
 

@@ -4,6 +4,7 @@ struct ContentView: View {
     @EnvironmentObject private var model: AppModel
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @State private var closeCandidate: WorkspaceSession?
+    @State private var cellHeightByID: [UUID: CGFloat] = [:]
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -114,9 +115,23 @@ struct ContentView: View {
                             headerDragID: session.id.uuidString
                         )
                         .frame(minWidth: 330, minHeight: 270, idealHeight: 330)
-                        .dropDestination(for: String.self) { items, _ in
+                        .background {
+                            GeometryReader { geo in
+                                Color.clear
+                                    .onAppear { cellHeightByID[session.id] = geo.size.height }
+                                    .onChange(of: geo.size.height) { _, newHeight in
+                                        cellHeightByID[session.id] = newHeight
+                                    }
+                            }
+                        }
+                        .dropDestination(for: String.self) { items, location in
                             guard let droppedID = items.first.flatMap(UUID.init(uuidString:)) else { return false }
-                            model.moveSession(droppedID, before: session.id)
+                            let height = cellHeightByID[session.id] ?? 300
+                            model.moveSession(
+                                droppedID,
+                                relativeTo: session.id,
+                                after: location.y > height / 2
+                            )
                             return true
                         }
                     }
