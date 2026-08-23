@@ -167,7 +167,9 @@ struct TerminalPane: View {
         @ViewBuilder
         func body(content: Content) -> some View {
             if let id {
-                content.draggable(id) {
+                content.onDrag {
+                    NSItemProvider(object: id as NSString)
+                } preview: {
                     SessionDragPreview(session: session)
                 }
             } else {
