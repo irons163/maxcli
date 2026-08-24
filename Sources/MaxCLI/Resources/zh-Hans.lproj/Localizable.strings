@@ -136,3 +136,6 @@
 "history.output" = "输出";
 "field.model" = "模型";
 "field.modelDefault" = "默认（由 opencode 决定）";
+"field.manageProviders" = "管理 Provider API Key…";
+"field.modelsLoading" = "加载模型列表中…";
+"help.refreshModels" = "刷新模型列表";

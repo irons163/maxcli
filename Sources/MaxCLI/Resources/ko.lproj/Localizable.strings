@@ -136,3 +136,6 @@
 "history.output" = "출력";
 "field.model" = "모델";
 "field.modelDefault" = "기본값 (opencode가 선택)";
+"field.manageProviders" = "프로바이더 API 키 관리…";
+"field.modelsLoading" = "모델 목록 불러오는 중…";
+"help.refreshModels" = "모델 목록 새로고침";

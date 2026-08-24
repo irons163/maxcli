@@ -136,3 +136,6 @@
 "history.output" = "Salida";
 "field.model" = "Modelo";
 "field.modelDefault" = "Predeterminado (elegido por opencode)";
+"field.manageProviders" = "Gestionar claves de API…";
+"field.modelsLoading" = "Cargando lista de modelos…";
+"help.refreshModels" = "Actualizar lista de modelos";

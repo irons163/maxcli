@@ -16,6 +16,7 @@ struct NewSessionSheet: View {
     @State private var titleWasEdited = false
     @State private var availableModels: [String] = []
     @State private var selectedModel: String?
+    @State private var isLoadingModels = false
 
     private let columns = [GridItem(.adaptive(minimum: 118), spacing: 8)]
     private static let iconChoices = [
@@ -79,14 +80,47 @@ struct NewSessionSheet: View {
                     TextField(model.tr("field.command"), text: $customCommand, prompt: Text(model.tr("field.commandExample")))
                         .font(.system(.body, design: .monospaced))
                 } else if agent != .shell {
-                    if agent == .opencode, !availableModels.isEmpty {
-                        Picker(model.tr("field.model"), selection: $selectedModel) {
-                            Text(model.tr("field.modelDefault")).tag(nil as String?)
-                            ForEach(availableModels, id: \.self) { item in
-                                Text(item).tag(item as String?)
+                    if agent == .opencode {
+                        if isLoadingModels, availableModels.isEmpty {
+                            HStack(spacing: 6) {
+                                ProgressView()
+                                    .controlSize(.small)
+                                Text(model.tr("field.modelsLoading"))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
+                        } else if !availableModels.isEmpty {
+                            Picker(model.tr("field.model"), selection: $selectedModel) {
+                                Text(model.tr("field.modelDefault")).tag(nil as String?)
+                                ForEach(availableModels, id: \.self) { item in
+                                    Text(item).tag(item as String?)
+                                }
+                            }
+                            .onChange(of: selectedModel) { _, _ in applyModelSelection() }
                         }
-                        .onChange(of: selectedModel) { _, _ in applyModelSelection() }
+
+                        HStack(spacing: 4) {
+                            Button {
+                                model.runOpenCodeAuth("auth login")
+                                dismiss()
+                            } label: {
+                                Label(model.tr("field.manageProviders"), systemImage: "key")
+                            }
+                            .buttonStyle(.link)
+                            .font(.caption)
+
+                            Spacer()
+
+                            Button {
+                                loadModels(force: true)
+                            } label: {
+                                Image(systemName: "arrow.clockwise")
+                            }
+                            .buttonStyle(.plain)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .help(model.tr("help.refreshModels"))
+                        }
                     }
                     TextField(model.tr("field.arguments"), text: $arguments)
                         .font(.system(.body, design: .monospaced))
@@ -133,10 +167,14 @@ struct NewSessionSheet: View {
         }
     }
 
-    private func loadModels() {
-        guard agent == .opencode, availableModels.isEmpty else { return }
+    private func loadModels(force: Bool = false) {
+        guard agent == .opencode else { return }
+        if force { OpenCodeModels.invalidate() }
+        guard availableModels.isEmpty || force, !isLoadingModels else { return }
+        isLoadingModels = true
         Task {
             availableModels = await OpenCodeModels.load()
+            isLoadingModels = false
         }
     }
 
