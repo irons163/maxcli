@@ -21,6 +21,7 @@ final class AppModel: ObservableObject {
     @Published var language: AppLanguage
     @Published private(set) var workingSessionIDs: Set<UUID> = []
     @Published private(set) var firstPrompts: [UUID: String] = [:]
+    @Published private(set) var modelInfoBySessionID: [UUID: OpenCodeModelInfo] = [:]
     @Published private(set) var recentSessionsByDirectory: [String: [OpenCodeHistorySession]] = [:]
     @Published var pendingBindRestart: PendingBindRestart?
 
@@ -521,16 +522,20 @@ final class AppModel: ObservableObject {
         let sessionSnapshot = sessions
         Task.detached(priority: .utility) { [weak self] in
             var promptsBySessionID: [UUID: String] = [:]
+            var modelInfoBySessionID: [UUID: OpenCodeModelInfo] = [:]
             for session in sessionSnapshot {
                 guard let bound = session.opencodeSessionID else { continue }
                 let prompt = (try? OpenCodeHistoryStore.firstUserPrompt(sessionID: bound)) ?? nil
                 if let prompt, !prompt.isEmpty {
                     promptsBySessionID[session.id] = prompt
                 }
+                if let info = try? OpenCodeHistoryStore.modelInfo(sessionID: bound) {
+                    modelInfoBySessionID[session.id] = info
+                }
             }
             let directories = Array(Set(sessionSnapshot.map(\.workingDirectory)))
             let recentSessions = Self.groupRecentSessions(by: directories)
-            await self?.applyHistory(promptsBySessionID, recentSessions)
+            await self?.applyHistory(promptsBySessionID, modelInfoBySessionID, recentSessions)
         }
     }
 
@@ -549,10 +554,14 @@ final class AppModel: ObservableObject {
     @MainActor
     private func applyHistory(
         _ promptsBySessionID: [UUID: String],
+        _ modelInfoBySessionID: [UUID: OpenCodeModelInfo],
         _ recentSessions: [String: [OpenCodeHistorySession]]
     ) {
         if promptsBySessionID != firstPrompts {
             firstPrompts = promptsBySessionID
+        }
+        if modelInfoBySessionID != self.modelInfoBySessionID {
+            self.modelInfoBySessionID = modelInfoBySessionID
         }
         if idSequenceChanged(recentSessions, recentSessionsByDirectory) {
             recentSessionsByDirectory = recentSessions

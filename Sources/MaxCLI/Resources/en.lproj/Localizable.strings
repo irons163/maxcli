@@ -44,6 +44,9 @@
 "sidebar.newSession" = "New Session";
 "sidebar.startAllStopped" = "Start All Stopped";
 "sidebar.stopAll" = "Stop All";
+"sidebar.provider" = "Provider";
+"sidebar.model" = "Model";
+"sidebar.variant" = "Variant";
 "context.pin" = "Pin";
 "context.unpin" = "Unpin";
 "context.duplicate" = "Duplicate";

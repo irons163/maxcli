@@ -299,10 +299,11 @@ private struct SessionRow: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-                Text("\(session.agent.displayName) · \(session.directoryName)")
+                Text(agentDetailLine)
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
+                    .help(modelDetailHelp)
             }
 
             Spacer(minLength: 4)
@@ -325,5 +326,31 @@ private struct SessionRow: View {
                     .stroke(session.activity == .failed ? Color.red.opacity(0.55) : Color.orange.opacity(0.5))
             }
         }
+    }
+
+    private var agentDetailLine: String {
+        var parts = [session.agent.displayName]
+        if let providerID = model.modelInfoBySessionID[session.id]?.providerID {
+            parts.append(providerID)
+        }
+        parts.append(session.directoryName)
+        return parts.joined(separator: " · ")
+    }
+
+    private var modelDetailHelp: String {
+        guard let info = model.modelInfoBySessionID[session.id] else {
+            return session.agent.displayName
+        }
+        var lines: [String] = []
+        if let providerID = info.providerID {
+            lines.append("\(model.tr("sidebar.provider")): \(providerID)")
+        }
+        if let modelID = info.modelID {
+            lines.append("\(model.tr("sidebar.model")): \(modelID)")
+        }
+        if let variant = info.variant {
+            lines.append("\(model.tr("sidebar.variant")): \(variant)")
+        }
+        return lines.joined(separator: "\n")
     }
 }

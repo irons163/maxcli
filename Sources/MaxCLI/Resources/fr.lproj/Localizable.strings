@@ -44,6 +44,9 @@
 "sidebar.newSession" = "Nouvelle session";
 "sidebar.startAllStopped" = "Lancer tout ce qui est arrêté";
 "sidebar.stopAll" = "Tout arrêter";
+"sidebar.provider" = "Fournisseur";
+"sidebar.model" = "Modèle";
+"sidebar.variant" = "Variante";
 "context.pin" = "Épingler";
 "context.unpin" = "Désépingler";
 "context.duplicate" = "Dupliquer";

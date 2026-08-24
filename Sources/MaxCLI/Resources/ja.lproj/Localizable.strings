@@ -44,6 +44,9 @@
 "sidebar.newSession" = "新規セッション";
 "sidebar.startAllStopped" = "停止中をすべて起動";
 "sidebar.stopAll" = "すべて停止";
+"sidebar.provider" = "プロバイダー";
+"sidebar.model" = "モデル";
+"sidebar.variant" = "バリアント";
 "context.pin" = "ピン留め";
 "context.unpin" = "ピン留め解除";
 "context.duplicate" = "複製";

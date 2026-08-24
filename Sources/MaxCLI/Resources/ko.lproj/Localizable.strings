@@ -44,6 +44,9 @@
 "sidebar.newSession" = "새 세션";
 "sidebar.startAllStopped" = "중지된 세션 모두 시작";
 "sidebar.stopAll" = "모두 중지";
+"sidebar.provider" = "공급자";
+"sidebar.model" = "모델";
+"sidebar.variant" = "변형";
 "context.pin" = "고정";
 "context.unpin" = "고정 해제";
 "context.duplicate" = "복제";

@@ -44,6 +44,9 @@
 "sidebar.newSession" = "新增 Session";
 "sidebar.startAllStopped" = "啟動所有已停止的";
 "sidebar.stopAll" = "全部停止";
+"sidebar.provider" = "供應商";
+"sidebar.model" = "模型";
+"sidebar.variant" = "變體";
 "context.pin" = "釘選";
 "context.unpin" = "取消釘選";
 "context.duplicate" = "複製";

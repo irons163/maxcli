@@ -314,6 +314,38 @@ final class OpenCodeHistoryStoreTests: XCTestCase {
         XCTAssertNil(try OpenCodeHistoryStore.firstUserPrompt(directory: "/tmp/nothing"))
     }
 
+    // MARK: - modelInfo
+
+    func testModelInfoParsesProviderModelAndVariant() throws {
+        let url = workspace.appendingPathComponent("opencode.db")
+        let db = try makeFixture(at: url)
+        try db.insert(
+            "INSERT INTO session VALUES (?,?,?,?,?,?,?,?)",
+            bindings: [
+                "sess_model", "Pinned Model", "/tmp/proj", "opencode",
+                #"{"id":"stealth/ox-alpha","providerID":"openrouter","variant":"max"}"#,
+                nil, early, late,
+            ]
+        )
+        OpenCodeHistoryStore.databaseURLOverride = url
+
+        let info = try XCTUnwrap(OpenCodeHistoryStore.modelInfo(sessionID: "sess_model"))
+        XCTAssertEqual(info.providerID, "openrouter")
+        XCTAssertEqual(info.modelID, "stealth/ox-alpha")
+        XCTAssertEqual(info.variant, "max")
+    }
+
+    func testModelInfoReturnsNilWithoutUsableModelColumn() throws {
+        try installFixture()
+
+        XCTAssertNil(
+            try OpenCodeHistoryStore.modelInfo(sessionID: "sess_a"),
+            "plain-text model column is not the JSON shape"
+        )
+        XCTAssertNil(try OpenCodeHistoryStore.modelInfo(sessionID: "sess_c"), "NULL model column")
+        XCTAssertNil(try OpenCodeHistoryStore.modelInfo(sessionID: "missing"))
+    }
+
     // MARK: - latestSessionID
 
     func testLatestSessionIDIgnoresSubagentsAndOtherDirectories() throws {

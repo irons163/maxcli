@@ -149,6 +149,18 @@ enum OpenCodeHistoryStore {
         }
     }
 
+    /// Provider/model currently selected for the session, parsed from the
+    /// `session.model` JSON column. Returns nil when the column is empty.
+    static func modelInfo(sessionID: String) throws -> OpenCodeModelInfo? {
+        try withConnection { db in
+            var info: OpenCodeModelInfo?
+            try query(db, sql: "SELECT model FROM session WHERE id = ?", bindings: [sessionID]) { columns in
+                info = OpenCodeModelInfo.parse(columns[0])
+            }
+            return info
+        }
+    }
+
     private static func firstUserText(db: OpaquePointer, sessionID: String) throws -> String? {
         var messageID: String?
         let messageSQL = """

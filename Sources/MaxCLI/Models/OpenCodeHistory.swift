@@ -14,6 +14,25 @@ struct OpenCodeHistorySession: Identifiable, Hashable, Sendable {
     var isSubagent: Bool { parentID != nil }
 }
 
+/// The provider/model selection stored as JSON in opencode's `session.model`
+/// column, e.g. `{"id":"claude-sonnet-4-5","providerID":"anthropic"}`.
+struct OpenCodeModelInfo: Hashable, Sendable {
+    let providerID: String?
+    let modelID: String?
+    let variant: String?
+
+    static func parse(_ json: String?) -> OpenCodeModelInfo? {
+        guard let json, let data = json.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { return nil }
+        return OpenCodeModelInfo(
+            providerID: object["providerID"] as? String,
+            modelID: object["id"] as? String,
+            variant: object["variant"] as? String
+        )
+    }
+}
+
 struct OpenCodePart: Identifiable, Sendable {
     let id: String
     let kind: OpenCodePartKind

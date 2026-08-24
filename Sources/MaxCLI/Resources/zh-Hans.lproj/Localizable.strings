@@ -44,6 +44,9 @@
 "sidebar.newSession" = "新建 Session";
 "sidebar.startAllStopped" = "启动所有已停止的";
 "sidebar.stopAll" = "全部停止";
+"sidebar.provider" = "供应商";
+"sidebar.model" = "模型";
+"sidebar.variant" = "变体";
 "context.pin" = "置顶";
 "context.unpin" = "取消置顶";
 "context.duplicate" = "复制";

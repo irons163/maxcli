@@ -164,12 +164,11 @@ struct TerminalPane: View {
         .background(Color.white.opacity(isSelected ? 0.07 : 0.035))
         .contentShape(Rectangle())
         .onTapGesture { model.select(session.id) }
-        .modifier(DragSource(id: headerDragID, session: session, onStart: onHeaderDragStart))
+        .modifier(DragSource(id: headerDragID, onStart: onHeaderDragStart))
     }
 
     private struct DragSource: ViewModifier {
         let id: String?
-        let session: WorkspaceSession
         var onStart: (() -> Void)? = nil
 
         @ViewBuilder
@@ -178,8 +177,6 @@ struct TerminalPane: View {
                 content.onDrag {
                     onStart?()
                     return NSItemProvider(object: id as NSString)
-                } preview: {
-                    SessionDragPreview(session: session)
                 }
             } else {
                 content
