@@ -7,6 +7,7 @@ struct TerminalPane: View {
     let compact: Bool
     var onRequestClose: () -> Void = {}
     var headerDragID: String? = nil
+    var onHeaderDragStart: (() -> Void)? = nil
     @State private var isDropTargeted = false
 
     private var isSelected: Bool { model.selectedSessionID == session.id }
@@ -157,18 +158,20 @@ struct TerminalPane: View {
         .background(Color.white.opacity(isSelected ? 0.07 : 0.035))
         .contentShape(Rectangle())
         .onTapGesture { model.select(session.id) }
-        .modifier(DragSource(id: headerDragID, session: session))
+        .modifier(DragSource(id: headerDragID, session: session, onStart: onHeaderDragStart))
     }
 
     private struct DragSource: ViewModifier {
         let id: String?
         let session: WorkspaceSession
+        var onStart: (() -> Void)? = nil
 
         @ViewBuilder
         func body(content: Content) -> some View {
             if let id {
                 content.onDrag {
-                    NSItemProvider(object: id as NSString)
+                    onStart?()
+                    return NSItemProvider(object: id as NSString)
                 } preview: {
                     SessionDragPreview(session: session)
                 }

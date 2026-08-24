@@ -202,9 +202,9 @@ struct SidebarView: View {
     }
 }
 
-/// Reorders sessions live while the drag hovers over a row, so neighbours
-/// animate apart instead of snapping only when the mouse is released.
-private struct SessionReorderDelegate: DropDelegate {
+/// Reorders sessions live while the drag hovers over a row or grid cell, so
+/// neighbours animate apart instead of snapping only when the mouse is released.
+struct SessionReorderDelegate: DropDelegate {
     let target: UUID
     @Binding var draggedID: UUID?
     let model: AppModel

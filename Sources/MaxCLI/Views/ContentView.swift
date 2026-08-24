@@ -1,10 +1,11 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ContentView: View {
     @EnvironmentObject private var model: AppModel
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @State private var closeCandidate: WorkspaceSession?
-    @State private var cellHeightByID: [UUID: CGFloat] = [:]
+    @State private var draggingSessionID: UUID?
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -112,28 +113,18 @@ struct ContentView: View {
                             session: session,
                             compact: true,
                             onRequestClose: { requestClose(session) },
-                            headerDragID: session.id.uuidString
+                            headerDragID: session.id.uuidString,
+                            onHeaderDragStart: { draggingSessionID = session.id }
                         )
                         .frame(minWidth: 330, minHeight: 270, idealHeight: 330)
-                        .background {
-                            GeometryReader { geo in
-                                Color.clear
-                                    .onAppear { cellHeightByID[session.id] = geo.size.height }
-                                    .onChange(of: geo.size.height) { _, newHeight in
-                                        cellHeightByID[session.id] = newHeight
-                                    }
-                            }
-                        }
-                        .dropDestination(for: String.self) { items, location in
-                            guard let droppedID = items.first.flatMap(UUID.init(uuidString:)) else { return false }
-                            let height = cellHeightByID[session.id] ?? 300
-                            model.moveSession(
-                                droppedID,
-                                relativeTo: session.id,
-                                after: location.y > height / 2
+                        .onDrop(
+                            of: [UTType.plainText],
+                            delegate: SessionReorderDelegate(
+                                target: session.id,
+                                draggedID: $draggingSessionID,
+                                model: model
                             )
-                            return true
-                        }
+                        )
                     }
                 }
                 .padding(12)
