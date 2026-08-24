@@ -8,6 +8,7 @@ struct TerminalPane: View {
     var onRequestClose: () -> Void = {}
     var headerDragID: String? = nil
     var onHeaderDragStart: (() -> Void)? = nil
+    var onDoubleClick: (() -> Void)? = nil
     @State private var isDropTargeted = false
 
     private var isSelected: Bool { model.selectedSessionID == session.id }
@@ -37,6 +38,11 @@ struct TerminalPane: View {
                     .stroke(Color.accentColor, lineWidth: 2)
             }
         }
+        .simultaneousGesture(
+            TapGesture(count: 2).onEnded {
+                onDoubleClick?()
+            }
+        )
     }
 
     private func performDrop(_ providers: [NSItemProvider]) -> Bool {

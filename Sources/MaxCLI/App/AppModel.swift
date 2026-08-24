@@ -103,18 +103,12 @@ final class AppModel: ObservableObject {
     var sortedSessions: [WorkspaceSession] {
         sessions.sorted { lhs, rhs in
             if lhs.isPinned != rhs.isPinned { return lhs.isPinned }
-            switch layoutMode {
-            case .active:
-                let lhsTime = lhs.lastActivityAt ?? lhs.lastActivatedAt
-                let rhsTime = rhs.lastActivityAt ?? rhs.lastActivatedAt
-                if lhsTime != rhsTime { return lhsTime > rhsTime }
-                return lhs.createdAt < rhs.createdAt
-            case .focus, .grid:
-                let lhsOrder = lhs.manualOrder ?? Int.max
-                let rhsOrder = rhs.manualOrder ?? Int.max
-                if lhsOrder != rhsOrder { return lhsOrder < rhsOrder }
-                return lhs.createdAt < rhs.createdAt
-            }
+            // Activity timestamps change as terminal output arrives. Keep the
+            // workspace order stable so active panes do not swap positions.
+            let lhsOrder = lhs.manualOrder ?? Int.max
+            let rhsOrder = rhs.manualOrder ?? Int.max
+            if lhsOrder != rhsOrder { return lhsOrder < rhsOrder }
+            return lhs.createdAt < rhs.createdAt
         }
     }
 

@@ -114,7 +114,12 @@ struct ContentView: View {
                             compact: true,
                             onRequestClose: { requestClose(session) },
                             headerDragID: session.id.uuidString,
-                            onHeaderDragStart: { draggingSessionID = session.id }
+                            onHeaderDragStart: { draggingSessionID = session.id },
+                            onDoubleClick: {
+                                guard model.layoutMode == .grid else { return }
+                                model.select(session.id)
+                                model.layoutMode = .focus
+                            }
                         )
                         .frame(minWidth: 330, minHeight: 270, idealHeight: 330)
                         .onDrop(

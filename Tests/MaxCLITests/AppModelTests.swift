@@ -85,28 +85,32 @@ final class AppModelTests: XCTestCase {
         try makeModelWithRunningSession(titles: [title], command: command)
     }
 
-    func testActiveModeSortsNewestActivityFirst() throws {
-        let (model, defaults, suite) = try makeModel()
+    func testActiveModeKeepsStableOrderWhenActivityChanges() throws {
+        let model = try makeModelWithRunningSession(titles: ["First", "Second"])
+        let ids = Dictionary(uniqueKeysWithValues: model.sessions.map { ($0.title, $0.id) })
         defer {
-            defaults.removePersistentDomain(forName: suite)
             closeAllSessions(model)
         }
-        model.addSession(makeSession(title: "First"))
-        model.addSession(makeSession(title: "Second"))
 
         model.layoutMode = .active
-        model.select(model.sessions[1].id)
-        model.handle(.bell, for: model.sessions[0].id)
+        for id in [ids["Second"]!, ids["First"]!, ids["Second"]!, ids["First"]!] {
+            model.handle(.output(100), for: id)
+            model.sampleOutputActivity()
+            XCTAssertEqual(model.activeSessions.map(\.title), ["First", "Second"])
+        }
 
-        XCTAssertEqual(model.sortedSessions.map(\.title), ["First", "Second"])
+        model.handle(.bell, for: ids["Second"]!)
+        XCTAssertEqual(model.activeSessions.map(\.title), ["First", "Second"])
     }
 
-    func testActiveModeFallsBackToMostRecentActivation() throws {
+    func testActiveModeUsesManualOrderInsteadOfRecentActivation() throws {
         let suite = "MaxCLI.AppModelTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
-        let first = makeSession(title: "First")
+        var first = makeSession(title: "First")
+        first.manualOrder = 0
         var second = makeSession(title: "Second")
+        second.manualOrder = 1
         second.lastActivatedAt = first.lastActivatedAt.addingTimeInterval(60)
         SessionPersistence(defaults: defaults).save([first, second])
 
@@ -116,7 +120,7 @@ final class AppModelTests: XCTestCase {
         )
         model.layoutMode = .active
 
-        XCTAssertEqual(model.sortedSessions.map(\.title), ["Second", "First"])
+        XCTAssertEqual(model.sortedSessions.map(\.title), ["First", "Second"])
     }
 
     func testActiveModeKeepsPinnedFirst() throws {
