@@ -85,6 +85,63 @@ final class CommandBuilderTests: XCTestCase {
         )
     }
 
+    func testEmptyCommandFallsBackToInteractiveShell() {
+        let session = WorkspaceSession(
+            title: "Empty",
+            agent: .custom,
+            workingDirectory: "/tmp",
+            customCommand: ""
+        )
+
+        XCTAssertEqual(
+            CommandBuilder.loginShellArguments(for: session, executableLocator: .isolated),
+            ["-l", "-c", "cd '/tmp'; printf '\\033[31mMaxCLI: command is empty\\033[0m\\n'; exec \"$SHELL\" -l"]
+        )
+    }
+
+    func testCustomAgentPassesCommandThroughUnresolved() {
+        let session = WorkspaceSession(
+            title: "Script",
+            agent: .custom,
+            workingDirectory: "/tmp/my dir",
+            customCommand: "/bin/echo hi"
+        )
+
+        XCTAssertEqual(
+            CommandBuilder.loginShellArguments(for: session, executableLocator: .isolated),
+            ["-l", "-c", "cd '/tmp/my dir'; exec /bin/echo hi"]
+        )
+    }
+
+    func testUnboundOpenCodeSessionOmitsResumeFlag() {
+        let session = WorkspaceSession(
+            title: "OC",
+            agent: .opencode,
+            workingDirectory: "/tmp"
+        )
+
+        let arguments = CommandBuilder.loginShellArguments(
+            for: session,
+            executableLocator: .isolated
+        )
+
+        XCTAssertFalse(arguments.last!.contains("-s"))
+    }
+
+    func testResumedOpenCodeEscapesQuotesInSessionID() throws {
+        let session = WorkspaceSession(
+            title: "OC",
+            agent: .opencode,
+            workingDirectory: "/tmp",
+            opencodeSessionID: "sess_it's"
+        )
+
+        XCTAssertEqual(
+            CommandBuilder.loginShellArguments(for: session, executableLocator: .isolated),
+            ["-l", "-c", "cd '/tmp'; exec opencode -s 'sess_it'\\''s'"]
+        )
+    }
+
     func testRestoredSessionsAreStopped() throws {
         let suite = "MaxCLITests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

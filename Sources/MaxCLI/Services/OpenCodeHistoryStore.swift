@@ -24,7 +24,13 @@ enum OpenCodeHistoryError: LocalizedError {
 /// `~/.local/share/opencode/opencode.db`. Queries run on a fresh read-only
 /// connection per call, so the live database (including WAL) is never touched.
 enum OpenCodeHistoryStore {
+    /// Test seam: when non-nil, overrides the default on-disk database location.
+    nonisolated(unsafe) static var databaseURLOverride: URL?
+
     static var databaseURL: URL? {
+        if let override = databaseURLOverride {
+            return FileManager.default.fileExists(atPath: override.path) ? override : nil
+        }
         let url = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".local/share/opencode/opencode.db")
         return FileManager.default.fileExists(atPath: url.path) ? url : nil
