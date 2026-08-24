@@ -1,9 +1,10 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SidebarView: View {
     @EnvironmentObject private var model: AppModel
     let onRequestClose: (WorkspaceSession) -> Void
-    @State private var rowHeightByID: [UUID: CGFloat] = [:]
+    @State private var draggingSessionID: UUID?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -78,28 +79,20 @@ struct SidebarView: View {
                     )
                     .contentShape(Rectangle())
                     .onTapGesture { model.select(session.id) }
-                    .background {
-                        GeometryReader { geo in
-                            Color.clear
-                                .onAppear { rowHeightByID[session.id] = geo.size.height }
-                                .onChange(of: geo.size.height) { _, newHeight in
-                                    rowHeightByID[session.id] = newHeight
-                                }
-                        }
-                    }
-                    .draggable(session.id.uuidString) {
+                    .onDrag {
+                        draggingSessionID = session.id
+                        return NSItemProvider(object: session.id.uuidString as NSString)
+                    } preview: {
                         SessionDragPreview(session: session)
                     }
-                    .dropDestination(for: String.self) { items, location in
-                        guard let droppedID = items.first.flatMap(UUID.init(uuidString:)) else { return false }
-                        let height = rowHeightByID[session.id] ?? 44
-                        model.moveSession(
-                            droppedID,
-                            relativeTo: session.id,
-                            after: location.y > height / 2
+                    .onDrop(
+                        of: [UTType.plainText],
+                        delegate: SessionReorderDelegate(
+                            target: session.id,
+                            draggedID: $draggingSessionID,
+                            model: model
                         )
-                        return true
-                    }
+                    )
                     .contextMenu {
                         Button(session.isPinned ? model.tr("context.unpin") : model.tr("context.pin")) {
                             model.togglePin(session.id)
@@ -206,6 +199,34 @@ struct SidebarView: View {
 
     private func languageLabel(_ language: AppLanguage) -> String {
         language == .system ? model.tr("language.system") : language.displayName
+    }
+}
+
+/// Reorders sessions live while the drag hovers over a row, so neighbours
+/// animate apart instead of snapping only when the mouse is released.
+private struct SessionReorderDelegate: DropDelegate {
+    let target: UUID
+    @Binding var draggedID: UUID?
+    let model: AppModel
+
+    func dropEntered(info: DropInfo) {
+        guard let dragged = draggedID, dragged != target else { return }
+        let sessions = model.visibleSessions
+        guard let from = sessions.firstIndex(where: { $0.id == dragged }),
+              let to = sessions.firstIndex(where: { $0.id == target })
+        else { return }
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+            model.moveSession(dragged, relativeTo: target, after: from < to)
+        }
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggedID = nil
+        return true
     }
 }
 
