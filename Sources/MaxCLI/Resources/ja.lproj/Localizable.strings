@@ -139,3 +139,5 @@
 "field.manageProviders" = "プロバイダーの API キーを管理…";
 "field.modelsLoading" = "モデル一覧を読み込み中…";
 "help.refreshModels" = "モデル一覧を更新";
+"field.provider" = "プロバイダー";
+"field.providerAll" = "すべてのプロバイダー";

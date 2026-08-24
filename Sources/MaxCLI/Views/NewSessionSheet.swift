@@ -17,6 +17,8 @@ struct NewSessionSheet: View {
     @State private var availableModels: [String] = []
     @State private var selectedModel: String?
     @State private var isLoadingModels = false
+    @State private var configuredProviders: [String] = []
+    @State private var selectedProvider: String?
 
     private let columns = [GridItem(.adaptive(minimum: 118), spacing: 8)]
     private static let iconChoices = [
@@ -90,9 +92,23 @@ struct NewSessionSheet: View {
                                     .foregroundStyle(.secondary)
                             }
                         } else if !availableModels.isEmpty {
+                            Picker(model.tr("field.provider"), selection: $selectedProvider) {
+                                Text(model.tr("field.providerAll")).tag(nil as String?)
+                                ForEach(configuredProviders, id: \.self) { item in
+                                    Text(item).tag(item as String?)
+                                }
+                            }
+                            .onChange(of: selectedProvider) { _, newValue in
+                                guard let newValue else { return }
+                                if selectedModel?.hasPrefix("\(newValue)/") != true {
+                                    selectedModel = nil
+                                    applyModelSelection()
+                                }
+                            }
+
                             Picker(model.tr("field.model"), selection: $selectedModel) {
                                 Text(model.tr("field.modelDefault")).tag(nil as String?)
-                                ForEach(availableModels, id: \.self) { item in
+                                ForEach(filteredModels, id: \.self) { item in
                                     Text(item).tag(item as String?)
                                 }
                             }
@@ -167,6 +183,11 @@ struct NewSessionSheet: View {
         }
     }
 
+    private var filteredModels: [String] {
+        guard let selectedProvider else { return availableModels }
+        return availableModels.filter { $0.hasPrefix("\(selectedProvider)/") }
+    }
+
     private func loadModels(force: Bool = false) {
         guard agent == .opencode else { return }
         if force { OpenCodeModels.invalidate() }
@@ -174,6 +195,7 @@ struct NewSessionSheet: View {
         isLoadingModels = true
         Task {
             availableModels = await OpenCodeModels.load()
+            configuredProviders = await OpenCodeModels.configuredProviders()
             isLoadingModels = false
         }
     }

@@ -139,3 +139,5 @@
 "field.manageProviders" = "管理 Provider API Key…";
 "field.modelsLoading" = "加载模型列表中…";
 "help.refreshModels" = "刷新模型列表";
+"field.provider" = "Provider";
+"field.providerAll" = "全部 provider";

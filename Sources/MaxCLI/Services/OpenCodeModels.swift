@@ -3,6 +3,7 @@ import Foundation
 @MainActor
 enum OpenCodeModels {
     private static var cache: [String]?
+    private static var providerCache: [String]?
 
     static func load() async -> [String] {
         if let cache { return cache }
@@ -11,8 +12,27 @@ enum OpenCodeModels {
         return list
     }
 
+    /// Provider IDs that have credentials configured, read from opencode's
+    /// auth store (keys only — secret values are never read into the UI).
+    static func configuredProviders() async -> [String] {
+        if let providerCache { return providerCache }
+        let list = await Task.detached { runProviders() }.value
+        providerCache = list
+        return list
+    }
+
     static func invalidate() {
         cache = nil
+        providerCache = nil
+    }
+
+    private nonisolated static func runProviders() -> [String] {
+        let url = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".local/share/opencode/auth.json")
+        guard let data = try? Data(contentsOf: url),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { return [] }
+        return object.keys.sorted()
     }
 
     private nonisolated static func run() -> [String] {

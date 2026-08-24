@@ -139,3 +139,5 @@
 "field.manageProviders" = "Gestionar claves de API…";
 "field.modelsLoading" = "Cargando lista de modelos…";
 "help.refreshModels" = "Actualizar lista de modelos";
+"field.provider" = "Proveedor";
+"field.providerAll" = "Todos los proveedores";

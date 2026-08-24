@@ -139,3 +139,5 @@
 "field.manageProviders" = "Manage provider API keys…";
 "field.modelsLoading" = "Loading model list…";
 "help.refreshModels" = "Refresh model list";
+"field.provider" = "Provider";
+"field.providerAll" = "All providers";
