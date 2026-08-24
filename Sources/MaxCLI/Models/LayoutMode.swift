@@ -17,7 +17,7 @@ enum LayoutMode: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .focus: "rectangle"
         case .grid: "square.grid.2x2"
-        case .active: "play.circle"
+        case .active: "bell.fill"
         }
     }
     var next: LayoutMode {

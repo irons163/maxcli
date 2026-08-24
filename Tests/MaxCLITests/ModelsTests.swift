@@ -51,6 +51,7 @@ final class ModelsTests: XCTestCase {
         XCTAssertFalse(LayoutMode.focus.symbolName.isEmpty)
         XCTAssertFalse(LayoutMode.grid.symbolName.isEmpty)
         XCTAssertFalse(LayoutMode.active.symbolName.isEmpty)
+        XCTAssertEqual(LayoutMode.active.symbolName, "bell.fill")
     }
 
     func testLayoutModeNextCyclesThroughAllModes() {
