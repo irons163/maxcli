@@ -4,6 +4,10 @@ import SwiftUI
 struct MaxCLIApp: App {
     @StateObject private var model = AppModel()
 
+    init() {
+        AppUpdater.shared.start()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -12,6 +16,15 @@ struct MaxCLIApp: App {
         }
         .defaultSize(width: 1320, height: 820)
         .commands {
+            CommandGroup(after: .appInfo) {
+                Button {
+                    AppUpdater.shared.checkForUpdates()
+                } label: {
+                    Text(model.tr("menu.checkForUpdates"))
+                }
+                .disabled(!AppUpdater.shared.isAvailable)
+            }
+
             CommandGroup(replacing: .newItem) {
                 Button {
                     model.isShowingNewSession = true

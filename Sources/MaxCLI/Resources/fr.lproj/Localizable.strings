@@ -18,6 +18,7 @@
 "menu.layout.active" = "Actives";
 "menu.cycleLayout" = "Disposition suivante";
 "menu.language" = "Langue";
+"menu.checkForUpdates" = "Rechercher les mises à jour…";
 "language.system" = "Suivre le système";
 
 /* Commun */

@@ -26,7 +26,7 @@ swift test
 swift run MaxCLI
 ```
 
-也可以直接用 Xcode 開啟 `Package.swift`。專案使用 [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm) 提供 VT100/Xterm 與本機 pseudo-terminal 支援。
+也可以直接用 Xcode 開啟 `Package.swift`。專案使用 [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm) 提供 VT100/Xterm 與本機 pseudo-terminal 支援，並使用 [Sparkle](https://sparkle-project.org/) 提供 App 內更新。
 
 建立可雙擊的 ad-hoc signed app：
 
@@ -35,7 +35,9 @@ make app
 open build/MaxCLI.app
 ```
 
-MaxCLI 不啟用 App Sandbox，因為 child process 必須能存取你指定的 repository、登入 shell 的 CLI 與開發工具。正式散佈前仍應設定自己的 Developer ID、notarization 與更新流程。
+MaxCLI 不啟用 App Sandbox，因為 child process 必須能存取你指定的 repository、登入 shell 的 CLI 與開發工具。正式 release 前需設定 Developer ID 與 notarization secrets；每次 release 也要同步更新 `Packaging/Info.plist` 的 `CFBundleShortVersionString` 與 `CFBundleVersion`。
+
+正式 release 由 `.github/workflows/release-dmg.yml` 建立 arm64／Intel DMG、上傳 GitHub Release，並產生 Sparkle appcast。Release workflow 需要 `APPLE_CERTIFICATE_P12_BASE64`、`APPLE_CERTIFICATE_PASSWORD`、`KEYCHAIN_PASSWORD`、`APPLE_TEAM_ID`、`APPLE_API_KEY_ID`、`APPLE_API_ISSUER_ID` 與 `APPLE_API_PRIVATE_KEY_BASE64` secrets。
 
 ## 鍵盤操作
 

@@ -1,4 +1,4 @@
-.PHONY: build test app run icon clean
+.PHONY: build test app appcast-test run icon clean
 
 build:
 	swift build
@@ -8,6 +8,9 @@ test:
 
 app:
 	./scripts/build-app.sh release
+
+appcast-test:
+	./scripts/test_generate_sparkle_appcast.sh
 
 icon:
 	rm -rf build/AppIcon.iconset

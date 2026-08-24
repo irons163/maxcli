@@ -12,12 +12,16 @@ let package = Package(
         .executable(name: "MaxCLI", targets: ["MaxCLI"])
     ],
     dependencies: [
-        .package(url: "https://github.com/migueldeicaza/SwiftTerm.git", from: "1.15.0")
+        .package(url: "https://github.com/migueldeicaza/SwiftTerm.git", from: "1.15.0"),
+        .package(url: "https://github.com/sparkle-project/Sparkle.git", from: "2.9.1")
     ],
     targets: [
         .executableTarget(
             name: "MaxCLI",
-            dependencies: ["SwiftTerm"],
+            dependencies: [
+                "SwiftTerm",
+                .product(name: "Sparkle", package: "sparkle")
+            ],
             path: "Sources/MaxCLI",
             resources: [
                 .process("Resources")

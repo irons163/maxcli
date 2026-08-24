@@ -18,6 +18,7 @@
 "menu.layout.active" = "Active";
 "menu.cycleLayout" = "Cycle Layout";
 "menu.language" = "Language";
+"menu.checkForUpdates" = "Check for Updates…";
 "language.system" = "Follow System";
 
 /* Common */

@@ -18,6 +18,7 @@
 "menu.layout.active" = "실행 중";
 "menu.cycleLayout" = "레이아웃 전환";
 "menu.language" = "언어";
+"menu.checkForUpdates" = "업데이트 확인…";
 "language.system" = "시스템 따르기";
 
 /* 공통 */

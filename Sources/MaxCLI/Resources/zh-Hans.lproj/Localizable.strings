@@ -18,6 +18,7 @@
 "menu.layout.active" = "运行中";
 "menu.cycleLayout" = "循环切换布局";
 "menu.language" = "语言";
+"menu.checkForUpdates" = "检查更新…";
 "language.system" = "跟随系统";
 
 /* 通用 */

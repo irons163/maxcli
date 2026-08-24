@@ -30,5 +30,11 @@
     <true/>
     <key>NSSupportsAutomaticGraphicsSwitching</key>
     <true/>
+    <key>SUAllowsInsecureUpdates</key>
+    <false/>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <key>SUFeedURL</key>
+    <string>https://github.com/irons163/maxcli/releases/latest/download/appcast-arm64.xml</string>
 </dict>
 </plist>
