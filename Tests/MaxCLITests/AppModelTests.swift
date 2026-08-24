@@ -353,6 +353,35 @@ final class AppModelTests: XCTestCase {
         )
     }
 
+    func testRepeatedBackgroundBellDoesNotRetriggerAttention() throws {
+        let model = try makeModelWithRunningSession(titles: ["Live", "Other"])
+        defer { closeAllSessions(model) }
+        let ids = Dictionary(uniqueKeysWithValues: model.sessions.map { ($0.title, $0.id) })
+        let liveID = try XCTUnwrap(ids["Live"])
+        model.select(ids["Other"]!)
+
+        model.handle(.bell, for: liveID)
+        let firstBellAt = try XCTUnwrap(model.sessions.first { $0.id == liveID }?.lastActivityAt)
+        XCTAssertEqual(model.sessions.first { $0.id == liveID }?.activity, .attention)
+
+        model.handle(.bell, for: liveID)
+
+        XCTAssertEqual(
+            model.sessions.first { $0.id == liveID }?.lastActivityAt,
+            firstBellAt,
+            "repeated bell events do not republish an already-attention session"
+        )
+
+        model.select(liveID)
+        model.select(ids["Other"]!)
+        model.handle(.bell, for: liveID)
+        XCTAssertGreaterThan(
+            model.sessions.first { $0.id == liveID }?.lastActivityAt ?? .distantPast,
+            firstBellAt,
+            "a new bell after attention is cleared is handled again"
+        )
+    }
+
     // MARK: - Manual ordering
 
     func testMoveSessionReordersUnpinnedSessionsAndPersistsOrder() throws {

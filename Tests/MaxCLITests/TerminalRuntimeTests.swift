@@ -3,6 +3,24 @@ import XCTest
 
 @MainActor
 final class TerminalRuntimeTests: XCTestCase {
+    func testBellOutputProducesOneBellEvent() {
+        let view = ManagedTerminalView(frame: .zero)
+        var events: [TerminalRuntimeEvent] = []
+        view.eventHandler = { events.append($0) }
+
+        let bytes: [UInt8] = [7]
+        view.dataReceived(slice: bytes[...])
+
+        XCTAssertEqual(events.count, 2)
+        guard case let .output(byteCount) = events[0] else {
+            return XCTFail("expected output event before bell")
+        }
+        XCTAssertEqual(byteCount, 1)
+        guard case .bell = events[1] else {
+            return XCTFail("expected one bell event")
+        }
+    }
+
     func testRunsCommandInsideAPseudoTerminal() async {
         let terminated = expectation(description: "PTY command terminated")
         var observedStarted = false

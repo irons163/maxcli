@@ -17,11 +17,14 @@ final class ManagedTerminalView: LocalProcessTerminalView {
     var eventHandler: ((TerminalRuntimeEvent) -> Void)?
 
     override func dataReceived(slice: ArraySlice<UInt8>) {
-        super.dataReceived(slice: slice)
         eventHandler?(.output(slice.count))
-        if slice.contains(7) {
-            eventHandler?(.bell)
-        }
+        super.dataReceived(slice: slice)
+    }
+
+    override func bell(source: Terminal) {
+        // SwiftTerm's default delegate plays NSSound.beep(). Route the event
+        // through AppModel so background attention is deduplicated there.
+        eventHandler?(.bell)
     }
 
     override func send(source: Terminal, data: ArraySlice<UInt8>) {

@@ -415,9 +415,15 @@ final class AppModel: ObservableObject {
             lastFocusAt[id] = .now
             return
         case .bell:
-            updateSession(id) { $0.lastActivityAt = .now }
-            guard selectedSessionID != id else { return }
-            updateSession(id) { $0.activity = .attention }
+            if selectedSessionID == id {
+                updateSession(id) { $0.lastActivityAt = .now }
+                return
+            }
+            guard session(id)?.activity != .attention else { return }
+            updateSession(id) { session in
+                session.lastActivityAt = .now
+                session.activity = .attention
+            }
             NSSound(named: "Glass")?.play()
             persist()
         case let .directory(directory):
