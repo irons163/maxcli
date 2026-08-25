@@ -5,7 +5,7 @@
 [![Latest release](https://img.shields.io/github/v/release/irons163/maxcli?display_name=tag)](https://github.com/irons163/maxcli/releases/latest)
 [![macOS](https://img.shields.io/badge/macOS-14%2B-111111)](https://github.com/irons163/maxcli/releases/latest)
 
-![MaxCLI 多 session 工作區](docs/images/maxcli-overview.png)
+![MaxCLI Single／Focus 工作區](docs/images/maxcli-single.png)
 
 MaxCLI 是以 SwiftUI 製作的 macOS app。它把 Codex、Claude Code、Gemini CLI、OpenCode 等互動式工具放進真正的 PTY 終端；每個 session 都是獨立程序、工作目錄與啟動參數。你可以同時開十幾個 agent，快速知道誰正在執行、誰需要注意，以及下一步該接哪個工作。
 
@@ -27,9 +27,11 @@ MaxCLI 是以 SwiftUI 製作的 macOS app。它把 Codex、Claude Code、Gemini 
 
 Active 模式會維持穩定的工作區順序；session 的輸出與背景提醒會反映在 sidebar，不會因為每個思考中的狀態事件而持續交換位置。
 
-## 新增 Session
+### Grid
 
-![MaxCLI 新增 Session](docs/images/maxcli-new-session.png)
+![MaxCLI Grid 工作區](docs/images/maxcli-grid.png)
+
+## 新增 Session
 
 新增 session 時可以選擇 agent、工作目錄、模型或 provider、啟動參數、圖示與顏色，也可以釘選重要 session。除了內建 agent，還能使用一般 Shell 或輸入任意 Custom command。
 
