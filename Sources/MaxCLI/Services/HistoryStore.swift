@@ -35,6 +35,14 @@ enum HistoryStore {
     }
 
     static func transcript(for sessionID: String) throws -> HistoryTranscript {
+        if let rawID = HistoryRecordID.codexThreadID(from: sessionID) {
+            let transcript = try CodexSQLiteHistoryStore.transcript(for: rawID)
+            return HistoryTranscript(
+                session: transcript.session.with(source: .codex, id: sessionID),
+                messages: transcript.messages
+            )
+        }
+
         if let rawID = HistoryRecordID.openCodeSessionID(from: sessionID) {
             let transcript = try OpenCodeHistoryStore.transcript(for: rawID)
             return HistoryTranscript(
@@ -89,7 +97,7 @@ enum HistoryProviderKind: CaseIterable {
 
     var storagePath: String {
         switch self {
-        case .codex: HistoryPath.codexHome.appendingPathComponent("sessions").path
+        case .codex: HistoryPath.codexHome.appendingPathComponent("thread_history_1.sqlite").path
         case .claude: HistoryPath.claudeHome.appendingPathComponent("projects").path
         case .gemini: HistoryPath.geminiHome.appendingPathComponent("tmp").path
         case .cursor: HistoryPath.cursorHome.appendingPathComponent("projects").path
@@ -173,6 +181,7 @@ enum HistoryPath {
 
 enum HistoryRecordID {
     private static let fileMarker = "file:"
+    private static let codexThreadMarker = "codex:thread:"
     private static let openCodeMarker = "opencode:"
 
     static func filePrefix(for agent: AgentKind) -> String {
@@ -192,6 +201,16 @@ enum HistoryRecordID {
               let path = String(data: data, encoding: .utf8)
         else { return nil }
         return path
+    }
+
+    static func codex(_ threadID: String) -> String {
+        "\(codexThreadMarker)\(threadID)"
+    }
+
+    static func codexThreadID(from id: String) -> String? {
+        guard id.hasPrefix(codexThreadMarker) else { return nil }
+        let threadID = String(id.dropFirst(codexThreadMarker.count))
+        return threadID.isEmpty ? nil : threadID
     }
 
     static func openCode(_ sessionID: String) -> String {
@@ -327,7 +346,7 @@ enum HistoryJSON {
         }
         if let values = value as? [Any] {
             return values.enumerated().flatMap { index, item in
-                contentParts(item, idPrefix: "(idPrefix)-(index)")
+                contentParts(item, idPrefix: "\(idPrefix)-\(index)")
             }
         }
         guard let object = value as? [String: Any] else { return [] }
@@ -357,12 +376,12 @@ enum HistoryJSON {
                 toolStatus: isError ? "error" : "completed",
                 toolOutput: stringify(object["content"] ?? object["output"] ?? object["result"])
             )]
-        case "file", "image":
+        case "file", "image", "localimage", "local_image":
             return [HistoryPart(
                 id: idPrefix,
                 kind: .file,
-                filename: string(object["filename"] ?? object["name"] ?? object["file"]),
-                fileURL: string(object["url"] ?? object["source"])
+                filename: string(object["filename"] ?? object["name"] ?? object["file"] ?? object["path"]),
+                fileURL: string(object["url"] ?? object["source"] ?? object["path"])
             )]
         default:
             if let nested = object["content"] {

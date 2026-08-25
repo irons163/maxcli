@@ -11,11 +11,13 @@ final class HistoryStoreTests: XCTestCase {
         try FileManager.default.createDirectory(at: home, withIntermediateDirectories: true)
         HistoryStore.homeDirectoryOverride = home
         OpenCodeHistoryStore.databaseURLOverride = home.appendingPathComponent("missing-opencode.db")
+        CodexSQLiteHistoryStore.databaseURLOverride = home.appendingPathComponent("missing-codex.db")
     }
 
     override func tearDownWithError() throws {
         HistoryStore.homeDirectoryOverride = nil
         OpenCodeHistoryStore.databaseURLOverride = nil
+        CodexSQLiteHistoryStore.databaseURLOverride = nil
         if let home {
             try? FileManager.default.removeItem(at: home)
         }

@@ -1,6 +1,6 @@
 import Foundation
 
-private enum HistoryProviderSupport {
+enum HistoryProviderSupport {
     static func dates(for url: URL) -> (created: Date, updated: Date) {
         let fileDates = HistoryFiles.dates(for: url)
         let created = fileDates.created ?? Date(timeIntervalSince1970: 0)
@@ -45,7 +45,8 @@ private enum HistoryProviderSupport {
         parentID: String? = nil,
         created: Date,
         updated: Date,
-        messages: [HistoryMessage]
+        messages: [HistoryMessage],
+        messageCount: Int? = nil
     ) -> HistorySession {
         HistorySession(
             id: id,
@@ -57,7 +58,7 @@ private enum HistoryProviderSupport {
             parentID: parentID,
             timeCreated: created,
             timeUpdated: updated,
-            messageCount: messages.count,
+            messageCount: messageCount ?? messages.count,
             source: agent
         )
     }
@@ -72,7 +73,12 @@ private enum HistoryProviderSupport {
 
 enum CodexHistoryProvider {
     static func listSessions() -> [HistorySession] {
-        files().compactMap { parse(at: $0)?.session }
+        let sqliteSessions = (try? CodexSQLiteHistoryStore.listSessions()) ?? []
+        let sqliteSessionIDs = Set(sqliteSessions.map(\.sessionID))
+        let legacySessions = files()
+            .compactMap { parse(at: $0)?.session }
+            .filter { !sqliteSessionIDs.contains($0.sessionID) }
+        return sqliteSessions + legacySessions
     }
 
     static func transcript(at url: URL) -> HistoryTranscript? {
