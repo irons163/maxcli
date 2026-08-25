@@ -1,16 +1,19 @@
 import SwiftUI
 
 final class TerminalHostView: NSView {
+    private var redrawGeneration = 0
+
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
-        guard window != nil else { return }
+        guard window != nil else {
+            redrawGeneration &+= 1
+            return
+        }
         for subview in subviews {
             subview.needsDisplay = true
         }
         forceRedrawOfTerminal()
-        DispatchQueue.main.async { [weak self] in
-            self?.forceRedrawOfTerminal()
-        }
+        scheduleRedrawAfterAttachment()
     }
 
     override func layout() {
@@ -38,6 +41,29 @@ final class TerminalHostView: NSView {
             subview.layer?.contents = nil
             subview.needsDisplay = true
             subview.displayIfNeeded()
+        }
+    }
+
+    /// SwiftUI may attach the host before its final grid cell size and window
+    /// backing are ready. Retry across a few main-runloop turns so a rehosted
+    /// terminal is redrawn after both have settled.
+    func scheduleRedrawAfterAttachment() {
+        redrawGeneration &+= 1
+        let generation = redrawGeneration
+        scheduleRedraw(generation: generation, attempt: 0)
+    }
+
+    private func scheduleRedraw(generation: Int, attempt: Int) {
+        guard attempt < 3 else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.redrawGeneration == generation else { return }
+            guard self.window != nil else {
+                self.scheduleRedraw(generation: generation, attempt: attempt + 1)
+                return
+            }
+            self.layoutSubtreeIfNeeded()
+            self.forceRedrawOfTerminal()
+            self.scheduleRedraw(generation: generation, attempt: attempt + 1)
         }
     }
 }
@@ -108,9 +134,7 @@ struct TerminalRepresentable: NSViewRepresentable {
         terminal.needsDisplay = true
         if moved {
             host.forceRedrawOfTerminal()
-            DispatchQueue.main.async { [weak host] in
-                host?.forceRedrawOfTerminal()
-            }
+            host.scheduleRedrawAfterAttachment()
         }
     }
 }

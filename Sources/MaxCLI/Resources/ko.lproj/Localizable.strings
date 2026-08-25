@@ -2,7 +2,7 @@
 "menu.newSession" = "새 세션…";
 "menu.sessions" = "세션";
 "menu.quickSwitcher" = "빠른 전환…";
-"menu.opencodeHistory" = "opencode 기록…";
+"menu.history" = "기록…";
 "menu.opencodeAuth" = "opencode 인증";
 "menu.opencodeLogin" = "로그인…";
 "menu.opencodeLogout" = "로그아웃";
@@ -30,7 +30,7 @@
 "close.message" = "%@이(가) 아직 실행 중입니다. 프로세스가 종료됩니다.";
 "workspace.selectSession" = "세션 선택";
 "workspace.noActive" = "실행 중인 세션이 없습니다";
-"help.opencodeHistory" = "opencode 기록 (⌘⇧H)";
+"help.history" = "기록 (⌘⇧H)";
 "help.quickSwitcher" = "빠른 전환 (⌘K)";
 "help.layout" = "집중·그리드·실행 중 레이아웃";
 "help.newSession" = "새 세션 (⌘N)";
@@ -112,14 +112,14 @@
 "activity.failed" = "실패";
 
 /* 기록 보기 */
-"history.title" = "opencode 기록";
+"history.title" = "기록";
 "history.reload" = "새로고침";
 "history.close" = "닫기 (Esc)";
 "history.search" = "기록 검색";
 "history.error" = "기록을 읽을 수 없습니다";
 "history.retry" = "다시 시도";
 "history.empty" = "기록 없음";
-"history.emptyDetail" = "opencode 대화를 아직 찾지 못했습니다\n%@";
+"history.emptyDetail" = "지원되는 로컬 agent 대화를 아직 찾지 못했습니다\n%@";
 "history.loading" = "불러오는 중…";
 "history.loadFailed" = "불러오기 실패";
 "history.selectSession" = "세션 선택";

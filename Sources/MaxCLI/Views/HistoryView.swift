@@ -2,55 +2,50 @@ import SwiftUI
 
 @MainActor
 final class HistoryModel: ObservableObject {
-    @Published private(set) var sessions: [OpenCodeHistorySession] = []
+    @Published private(set) var sessions: [HistorySession] = []
     @Published private(set) var selectedSessionID: String?
-    @Published private(set) var transcript: OpenCodeTranscript?
+    @Published private(set) var transcript: HistoryTranscript?
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
     @Published var searchText = ""
 
-    var databasePath: String {
-        OpenCodeHistoryStore.databaseURL?.path ?? "~/.local/share/opencode/opencode.db"
+    var storageDescription: String {
+        HistoryStore.storageDescription
     }
 
-    var filteredSessions: [OpenCodeHistorySession] {
+    var filteredSessions: [HistorySession] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !query.isEmpty else { return sessions }
         return sessions.filter { session in
             session.title.lowercased().contains(query)
                 || session.directory.lowercased().contains(query)
                 || (session.agent?.lowercased().contains(query) ?? false)
+                || session.source.displayName.lowercased().contains(query)
         }
     }
 
     func reload() async {
         isLoading = true
         errorMessage = nil
-        do {
-            let loaded = try await Task.detached {
-                try OpenCodeHistoryStore.listSessions()
-            }.value
-            sessions = loaded
-            if let selectedSessionID, !loaded.contains(where: { $0.id == selectedSessionID }) {
-                self.selectedSessionID = nil
-            }
-            if let current = selectedSessionID {
-                await loadTranscript(for: current)
-            } else if let first = loaded.first {
-                selectedSessionID = first.id
-                await loadTranscript(for: first.id)
-            } else {
-                transcript = nil
-            }
-        } catch {
-            errorMessage = error.localizedDescription
-            sessions = []
+        let loaded = await Task.detached {
+            HistoryStore.listSessions()
+        }.value
+        sessions = loaded
+        if let selectedSessionID, !loaded.contains(where: { $0.id == selectedSessionID }) {
+            self.selectedSessionID = nil
+        }
+        if let current = selectedSessionID {
+            await loadTranscript(for: current)
+        } else if let first = loaded.first {
+            selectedSessionID = first.id
+            await loadTranscript(for: first.id)
+        } else {
             transcript = nil
         }
         isLoading = false
     }
 
-    func select(_ session: OpenCodeHistorySession) {
+    func select(_ session: HistorySession) {
         guard session.id != selectedSessionID else { return }
         selectedSessionID = session.id
         Task { await loadTranscript(for: session.id) }
@@ -60,7 +55,7 @@ final class HistoryModel: ObservableObject {
         transcript = nil
         do {
             let loaded = try await Task.detached {
-                try OpenCodeHistoryStore.transcript(for: sessionID)
+                try HistoryStore.transcript(for: sessionID)
             }.value
             guard selectedSessionID == sessionID else { return }
             transcript = loaded
@@ -151,7 +146,7 @@ struct HistoryView: View {
             ContentUnavailableView {
                 Label(appModel.tr("history.error"), systemImage: "exclamationmark.triangle")
             } description: {
-                Text("\(errorMessage)\n\(model.databasePath)")
+                Text("\(errorMessage)\n\(model.storageDescription)")
             } actions: {
                 Button(appModel.tr("history.retry")) {
                     Task { await model.reload() }
@@ -161,7 +156,7 @@ struct HistoryView: View {
             ContentUnavailableView {
                 Label(appModel.tr("history.empty"), systemImage: "clock.arrow.circlepath")
             } description: {
-                Text(appModel.trf("history.emptyDetail", model.databasePath))
+                Text(appModel.trf("history.emptyDetail", model.storageDescription))
             }
         }
     }
@@ -188,7 +183,7 @@ struct HistoryView: View {
 }
 
 private struct HistorySessionRow: View {
-    let session: OpenCodeHistorySession
+    let session: HistorySession
     let isSelected: Bool
     @EnvironmentObject private var appModel: AppModel
 
@@ -222,14 +217,14 @@ private struct HistorySessionRow: View {
 
     private var detailLine: String {
         let directory = URL(fileURLWithPath: session.directory).lastPathComponent
-        let agent = session.agent ?? "opencode"
+        let agent = session.source.displayName
         let date = session.timeUpdated.formatted(.relative(presentation: .named))
         return "\(agent) · \(directory) · \(appModel.trf("history.messageCount", session.messageCount)) · \(date)"
     }
 }
 
 private struct TranscriptView: View {
-    let transcript: OpenCodeTranscript
+    let transcript: HistoryTranscript
     @EnvironmentObject private var appModel: AppModel
 
     var body: some View {
@@ -287,7 +282,7 @@ private struct TranscriptView: View {
     private var headerLine: String {
         let directory = URL(fileURLWithPath: transcript.session.directory).lastPathComponent
         let created = transcript.session.timeCreated.formatted(date: .abbreviated, time: .shortened)
-        return "\(transcript.session.agent ?? "opencode") · \(directory) · \(appModel.trf("history.messageCount", transcript.messages.count)) · \(created)"
+        return "\(transcript.session.source.displayName) · \(directory) · \(appModel.trf("history.messageCount", transcript.messages.count)) · \(created)"
     }
 }
 

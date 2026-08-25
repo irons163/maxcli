@@ -2,7 +2,7 @@
 "menu.newSession" = "New Session…";
 "menu.sessions" = "Sessions";
 "menu.quickSwitcher" = "Quick Switcher…";
-"menu.opencodeHistory" = "opencode History…";
+"menu.history" = "History…";
 "menu.opencodeAuth" = "opencode Auth";
 "menu.opencodeLogin" = "Login…";
 "menu.opencodeLogout" = "Logout";
@@ -30,7 +30,7 @@
 "close.message" = "%@ is still running. Its process will be terminated.";
 "workspace.selectSession" = "Select a session";
 "workspace.noActive" = "No active sessions";
-"help.opencodeHistory" = "opencode History (⌘⇧H)";
+"help.history" = "History (⌘⇧H)";
 "help.quickSwitcher" = "Quick switcher (⌘K)";
 "help.layout" = "Focus, grid or active layout";
 "help.newSession" = "New session (⌘N)";
@@ -112,14 +112,14 @@
 "activity.failed" = "Failed";
 
 /* History view */
-"history.title" = "opencode History";
+"history.title" = "History";
 "history.reload" = "Reload";
 "history.close" = "Close (Esc)";
 "history.search" = "Search history";
 "history.error" = "Unable to read history";
 "history.retry" = "Retry";
 "history.empty" = "No history";
-"history.emptyDetail" = "No opencode conversations found yet\n%@";
+"history.emptyDetail" = "No supported local agent conversations found yet\n%@";
 "history.loading" = "Loading…";
 "history.loadFailed" = "Failed to load";
 "history.selectSession" = "Select a session";

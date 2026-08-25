@@ -108,7 +108,7 @@ struct ContentView: View {
             let columns = Array(repeating: GridItem(.flexible(minimum: 330), spacing: 12), count: count)
             ScrollView([.vertical, .horizontal]) {
                 LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
-                    ForEach(sessions) { session in
+                    ForEach(sessions, id: \.id) { session in
                         TerminalPane(
                             session: session,
                             compact: true,
@@ -121,6 +121,7 @@ struct ContentView: View {
                                 model.layoutMode = .focus
                             }
                         )
+                        .id(session.id)
                         .frame(minWidth: 330, minHeight: 270, idealHeight: 330)
                         .onDrop(
                             of: [UTType.plainText],
@@ -163,7 +164,7 @@ struct ContentView: View {
             } label: {
                 Image(systemName: "clock.arrow.circlepath")
             }
-            .help(model.tr("help.opencodeHistory"))
+            .help(model.tr("help.history"))
 
             Button {
                 model.isShowingQuickSwitcher = true

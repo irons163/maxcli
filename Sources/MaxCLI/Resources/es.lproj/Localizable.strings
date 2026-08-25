@@ -2,7 +2,7 @@
 "menu.newSession" = "Nueva sesión…";
 "menu.sessions" = "Sesiones";
 "menu.quickSwitcher" = "Cambio rápido…";
-"menu.opencodeHistory" = "Historial de opencode…";
+"menu.history" = "Historial…";
 "menu.opencodeAuth" = "Autenticación de opencode";
 "menu.opencodeLogin" = "Iniciar sesión…";
 "menu.opencodeLogout" = "Cerrar sesión";
@@ -30,7 +30,7 @@
 "close.message" = "%@ sigue en ejecución. Se terminará su proceso.";
 "workspace.selectSession" = "Selecciona una sesión";
 "workspace.noActive" = "No hay sesiones activas";
-"help.opencodeHistory" = "Historial de opencode (⌘⇧H)";
+"help.history" = "Historial (⌘⇧H)";
 "help.quickSwitcher" = "Cambio rápido (⌘K)";
 "help.layout" = "Diseño de enfoque, cuadrícula o activas";
 "help.newSession" = "Nueva sesión (⌘N)";
@@ -112,14 +112,14 @@
 "activity.failed" = "Falló";
 
 /* Vista de historial */
-"history.title" = "Historial de opencode";
+"history.title" = "Historial";
 "history.reload" = "Actualizar";
 "history.close" = "Cerrar (Esc)";
 "history.search" = "Buscar en el historial";
 "history.error" = "No se pudo leer el historial";
 "history.retry" = "Reintentar";
 "history.empty" = "Sin historial";
-"history.emptyDetail" = "Aún no se encontraron conversaciones de opencode\n%@";
+"history.emptyDetail" = "Aún no se encontraron conversaciones locales compatibles\n%@";
 "history.loading" = "Cargando…";
 "history.loadFailed" = "Error al cargar";
 "history.selectSession" = "Selecciona una sesión";

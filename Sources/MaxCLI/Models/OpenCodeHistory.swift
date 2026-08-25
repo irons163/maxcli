@@ -1,6 +1,6 @@
 import Foundation
 
-struct OpenCodeHistorySession: Identifiable, Hashable, Sendable {
+struct HistorySession: Identifiable, Hashable, Sendable {
     let id: String
     let title: String
     let directory: String
@@ -10,9 +10,38 @@ struct OpenCodeHistorySession: Identifiable, Hashable, Sendable {
     let timeCreated: Date
     let timeUpdated: Date
     let messageCount: Int
+    let source: AgentKind
+
+    init(
+        id: String,
+        title: String,
+        directory: String,
+        agent: String?,
+        model: String?,
+        parentID: String?,
+        timeCreated: Date,
+        timeUpdated: Date,
+        messageCount: Int,
+        source: AgentKind = .opencode
+    ) {
+        self.id = id
+        self.title = title
+        self.directory = directory
+        self.agent = agent
+        self.model = model
+        self.parentID = parentID
+        self.timeCreated = timeCreated
+        self.timeUpdated = timeUpdated
+        self.messageCount = messageCount
+        self.source = source
+    }
 
     var isSubagent: Bool { parentID != nil }
 }
+
+/// Compatibility aliases for the OpenCode-specific sidebar integration.
+/// New history sources use the provider-neutral types above.
+typealias OpenCodeHistorySession = HistorySession
 
 /// The provider/model selection stored as JSON in opencode's `session.model`
 /// column, e.g. `{"id":"claude-sonnet-4-5","providerID":"anthropic"}`.
@@ -33,9 +62,9 @@ struct OpenCodeModelInfo: Hashable, Sendable {
     }
 }
 
-struct OpenCodePart: Identifiable, Sendable {
+struct HistoryPart: Identifiable, Sendable {
     let id: String
-    let kind: OpenCodePartKind
+    let kind: HistoryPartKind
     let text: String?
     let toolName: String?
     let toolStatus: String?
@@ -49,7 +78,7 @@ struct OpenCodePart: Identifiable, Sendable {
 
     init(
         id: String,
-        kind: OpenCodePartKind,
+        kind: HistoryPartKind,
         text: String? = nil,
         toolName: String? = nil,
         toolStatus: String? = nil,
@@ -80,7 +109,9 @@ struct OpenCodePart: Identifiable, Sendable {
     }
 }
 
-enum OpenCodePartKind: String, Sendable {
+typealias OpenCodePart = HistoryPart
+
+enum HistoryPartKind: String, Sendable, Equatable {
     case text
     case reasoning
     case tool
@@ -106,14 +137,20 @@ enum OpenCodePartKind: String, Sendable {
     }
 }
 
-struct OpenCodeMessage: Identifiable, Sendable {
+typealias OpenCodePartKind = HistoryPartKind
+
+struct HistoryMessage: Identifiable, Sendable {
     let id: String
     let role: String
     let timeCreated: Date
-    let parts: [OpenCodePart]
+    let parts: [HistoryPart]
 }
 
-struct OpenCodeTranscript: Sendable {
-    let session: OpenCodeHistorySession
-    let messages: [OpenCodeMessage]
+typealias OpenCodeMessage = HistoryMessage
+
+struct HistoryTranscript: Sendable {
+    let session: HistorySession
+    let messages: [HistoryMessage]
 }
+
+typealias OpenCodeTranscript = HistoryTranscript

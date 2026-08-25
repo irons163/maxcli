@@ -2,7 +2,7 @@
 "menu.newSession" = "Nouvelle session…";
 "menu.sessions" = "Sessions";
 "menu.quickSwitcher" = "Commutation rapide…";
-"menu.opencodeHistory" = "Historique opencode…";
+"menu.history" = "Historique…";
 "menu.opencodeAuth" = "Authentification opencode";
 "menu.opencodeLogin" = "Se connecter…";
 "menu.opencodeLogout" = "Se déconnecter";
@@ -30,7 +30,7 @@
 "close.message" = "%@ est toujours en cours d'exécution. Son processus sera terminé.";
 "workspace.selectSession" = "Sélectionner une session";
 "workspace.noActive" = "Aucune session active";
-"help.opencodeHistory" = "Historique opencode (⌘⇧H)";
+"help.history" = "Historique (⌘⇧H)";
 "help.quickSwitcher" = "Commutation rapide (⌘K)";
 "help.layout" = "Disposition focus, grille ou actives";
 "help.newSession" = "Nouvelle session (⌘N)";
@@ -112,14 +112,14 @@
 "activity.failed" = "Échec";
 
 /* Vue historique */
-"history.title" = "Historique opencode";
+"history.title" = "Historique";
 "history.reload" = "Actualiser";
 "history.close" = "Fermer (Échap)";
 "history.search" = "Rechercher dans l'historique";
 "history.error" = "Impossible de lire l'historique";
 "history.retry" = "Réessayer";
 "history.empty" = "Aucun historique";
-"history.emptyDetail" = "Aucune conversation opencode trouvée pour l'instant\n%@";
+"history.emptyDetail" = "Aucune conversation locale compatible trouvée pour l'instant\n%@";
 "history.loading" = "Chargement…";
 "history.loadFailed" = "Échec du chargement";
 "history.selectSession" = "Sélectionner une session";

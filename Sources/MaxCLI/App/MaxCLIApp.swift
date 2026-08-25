@@ -47,7 +47,7 @@ struct MaxCLIApp: App {
                 Button {
                     model.isShowingHistory = true
                 } label: {
-                    Text(model.tr("menu.opencodeHistory"))
+                    Text(model.tr("menu.history"))
                 }
                 .keyboardShortcut("h", modifiers: [.command, .shift])
 

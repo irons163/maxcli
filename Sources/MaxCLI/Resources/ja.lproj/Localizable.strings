@@ -2,7 +2,7 @@
 "menu.newSession" = "新規セッション…";
 "menu.sessions" = "セッション";
 "menu.quickSwitcher" = "クイックスイッチャー…";
-"menu.opencodeHistory" = "opencode 履歴…";
+"menu.history" = "履歴…";
 "menu.opencodeAuth" = "opencode 認証";
 "menu.opencodeLogin" = "ログイン…";
 "menu.opencodeLogout" = "ログアウト";
@@ -30,7 +30,7 @@
 "close.message" = "%@ はまだ実行中です。プロセスが終了されます。";
 "workspace.selectSession" = "セッションを選択";
 "workspace.noActive" = "実行中のセッションがありません";
-"help.opencodeHistory" = "opencode 履歴 (⌘⇧H)";
+"help.history" = "履歴 (⌘⇧H)";
 "help.quickSwitcher" = "クイックスイッチャー (⌘K)";
 "help.layout" = "フォーカス・グリッド・実行中レイアウト";
 "help.newSession" = "新規セッション (⌘N)";
@@ -112,14 +112,14 @@
 "activity.failed" = "失敗";
 
 /* 履歴ビュー */
-"history.title" = "opencode 履歴";
+"history.title" = "履歴";
 "history.reload" = "再読み込み";
 "history.close" = "閉じる (Esc)";
 "history.search" = "履歴を検索";
 "history.error" = "履歴を読み込めません";
 "history.retry" = "再試行";
 "history.empty" = "履歴がありません";
-"history.emptyDetail" = "opencode の会話が見つかりません\n%@";
+"history.emptyDetail" = "対応しているローカル agent の会話が見つかりません\n%@";
 "history.loading" = "読み込み中…";
 "history.loadFailed" = "読み込みに失敗しました";
 "history.selectSession" = "セッションを選択";

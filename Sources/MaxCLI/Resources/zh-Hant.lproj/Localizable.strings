@@ -2,7 +2,7 @@
 "menu.newSession" = "新增 Session…";
 "menu.sessions" = "Sessions";
 "menu.quickSwitcher" = "快速切換…";
-"menu.opencodeHistory" = "opencode 歷史…";
+"menu.history" = "歷史紀錄…";
 "menu.opencodeAuth" = "opencode 登入";
 "menu.opencodeLogin" = "登入…";
 "menu.opencodeLogout" = "登出";
@@ -30,7 +30,7 @@
 "close.message" = "%@ 仍在執行，關閉會終止其程序。";
 "workspace.selectSession" = "選擇一個 session";
 "workspace.noActive" = "沒有執行中的 session";
-"help.opencodeHistory" = "opencode 歷史 (⌘⇧H)";
+"help.history" = "歷史紀錄 (⌘⇧H)";
 "help.quickSwitcher" = "快速切換 (⌘K)";
 "help.layout" = "專注、方格或執行中版面";
 "help.newSession" = "新增 session (⌘N)";
@@ -112,14 +112,14 @@
 "activity.failed" = "失敗";
 
 /* 歷史紀錄 */
-"history.title" = "opencode 歷史";
+"history.title" = "歷史紀錄";
 "history.reload" = "重新整理";
 "history.close" = "關閉 (Esc)";
 "history.search" = "搜尋紀錄";
 "history.error" = "無法讀取紀錄";
 "history.retry" = "重試";
 "history.empty" = "沒有紀錄";
-"history.emptyDetail" = "還沒有找到 opencode 對話紀錄\n%@";
+"history.emptyDetail" = "目前找不到支援的本機 agent 對話紀錄\n%@";
 "history.loading" = "載入中…";
 "history.loadFailed" = "讀取失敗";
 "history.selectSession" = "選擇一個 session";
