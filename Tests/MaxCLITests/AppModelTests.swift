@@ -733,6 +733,62 @@ final class AppModelTests: XCTestCase {
         XCTAssertNil(model.sessions[0].opencodeSessionID)
     }
 
+    func testBindGenericHistorySessionStoresNativeIDForMatchingAgent() throws {
+        let suite = "MaxCLI.AppModelTests.GenericBind.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        SessionPersistence(defaults: defaults).save([
+            WorkspaceSession(
+                title: "Codex",
+                agent: .codex,
+                workingDirectory: "/tmp/proj"
+            )
+        ])
+        let model = AppModel(
+            persistence: SessionPersistence(defaults: defaults),
+            executableLocator: ExecutableLocator()
+        )
+        let id = model.sessions[0].id
+        let history = HistorySession(
+            id: "codex:file:fixture",
+            sessionID: "codex-native-id",
+            title: "Fix the project",
+            directory: "/tmp/proj",
+            agent: AgentKind.codex.rawValue,
+            model: nil,
+            parentID: nil,
+            timeCreated: .now,
+            timeUpdated: .now,
+            messageCount: 2,
+            source: .codex
+        )
+
+        model.bindSession(id, to: history)
+
+        XCTAssertEqual(model.sessions[0].boundSessionID, "codex-native-id")
+        XCTAssertNil(model.sessions[0].opencodeSessionID)
+        XCTAssertEqual(
+            SessionPersistence(defaults: defaults).load().sessions[0].boundSessionID,
+            "codex-native-id"
+        )
+
+        let wrongProvider = HistorySession(
+            id: "claude:file:fixture",
+            sessionID: "claude-id",
+            title: "Wrong provider",
+            directory: "/tmp/proj",
+            agent: AgentKind.claude.rawValue,
+            model: nil,
+            parentID: nil,
+            timeCreated: .now,
+            timeUpdated: .now,
+            messageCount: 1,
+            source: .claude
+        )
+        model.bindSession(id, to: wrongProvider)
+        XCTAssertEqual(model.sessions[0].boundSessionID, "codex-native-id")
+    }
+
     func testBindWhileRunningWaitsForConfirmOrCancel() throws {
         let model = try makeModelWithRunningSession(command: "/bin/sleep 6")
         defer { closeAllSessions(model) }
@@ -751,7 +807,7 @@ final class AppModelTests: XCTestCase {
         model.bindOpenCodeSession(id, to: "sess_applied")
         model.confirmBindRestart()
 
-        XCTAssertEqual(model.sessions[0].opencodeSessionID, "sess_applied")
+        XCTAssertEqual(model.sessions[0].boundSessionID, "sess_applied")
         XCTAssertNil(model.pendingBindRestart)
         XCTAssertFalse(model.runtime(for: id) === runtimeBefore, "confirm restarts the session")
     }

@@ -22,7 +22,7 @@ final class AppModel: ObservableObject {
     @Published private(set) var workingSessionIDs: Set<UUID> = []
     @Published private(set) var firstPrompts: [UUID: String] = [:]
     @Published private(set) var modelInfoBySessionID: [UUID: OpenCodeModelInfo] = [:]
-    @Published private(set) var recentSessionsByDirectory: [String: [OpenCodeHistorySession]] = [:]
+    @Published private(set) var recentSessionsByDirectory: [String: [HistorySession]] = [:]
     @Published var pendingBindRestart: PendingBindRestart?
 
     private(set) var runtimes: [UUID: TerminalRuntime] = [:]
@@ -300,19 +300,30 @@ final class AppModel: ObservableObject {
         persist()
     }
 
+    func bindSession(_ id: UUID, to historySession: HistorySession?) {
+        guard let session = session(id) else { return }
+        guard historySession == nil || historySession?.source == session.agent else { return }
+        requestBinding(id, to: historySession?.sessionID)
+    }
+
+    /// Compatibility entry point for older callers and persisted OpenCode UI.
     func bindOpenCodeSession(_ id: UUID, to opencodeSessionID: String?) {
-        guard let session = session(id), session.opencodeSessionID != opencodeSessionID else { return }
+        requestBinding(id, to: opencodeSessionID)
+    }
+
+    private func requestBinding(_ id: UUID, to target: String?) {
+        guard let session = session(id), session.boundSessionID != target else { return }
         if runtimes[id]?.isRunning == true {
-            pendingBindRestart = PendingBindRestart(sessionID: id, target: opencodeSessionID)
+            pendingBindRestart = PendingBindRestart(sessionID: id, target: target)
             return
         }
-        applyOpenCodeBinding(id, to: opencodeSessionID)
+        applySessionBinding(id, to: target)
     }
 
     func confirmBindRestart() {
         guard let pending = pendingBindRestart else { return }
         pendingBindRestart = nil
-        applyOpenCodeBinding(pending.sessionID, to: pending.target)
+        applySessionBinding(pending.sessionID, to: pending.target)
         restart(pending.sessionID)
     }
 
@@ -320,8 +331,11 @@ final class AppModel: ObservableObject {
         pendingBindRestart = nil
     }
 
-    private func applyOpenCodeBinding(_ id: UUID, to opencodeSessionID: String?) {
-        updateSession(id) { $0.opencodeSessionID = opencodeSessionID }
+    private func applySessionBinding(_ id: UUID, to target: String?) {
+        updateSession(id) { session in
+            session.boundSessionID = target
+            session.opencodeSessionID = session.agent == .opencode ? target : nil
+        }
         persist()
     }
 
@@ -329,20 +343,19 @@ final class AppModel: ObservableObject {
         guard let session = session(id),
               session.agent == .opencode,
               !session.isTransient,
-              session.opencodeSessionID == nil,
+              session.boundSessionID == nil,
               !sessions.contains(where: { $0.id != id && $0.workingDirectory == session.workingDirectory })
         else { return }
         guard let latestID = try? OpenCodeHistoryStore.latestSessionID(directory: session.workingDirectory) else { return }
-        updateSession(id) { $0.opencodeSessionID = latestID }
-        persist()
+        applySessionBinding(id, to: latestID)
     }
-    private func detectOpenCodeBindings(_ recentSessions: [String: [OpenCodeHistorySession]]) {
-        var taken = Set(sessions.compactMap(\.opencodeSessionID))
+    private func detectOpenCodeBindings(_ recentSessions: [String: [HistorySession]]) {
+        var taken = Set(sessions.filter { $0.agent == .opencode }.compactMap(\.boundSessionID))
         let unbound = sessions
             .filter {
                 $0.agent == .opencode
                     && !$0.isTransient
-                    && $0.opencodeSessionID == nil
+                    && $0.boundSessionID == nil
                     && runtimes[$0.id]?.isRunning == true
             }
             .sorted {
@@ -352,8 +365,9 @@ final class AppModel: ObservableObject {
             guard let launch = launchDates[session.id] else { continue }
             let match = recentSessions[session.workingDirectory]?
                 .filter {
-                    !$0.isSubagent
-                    && !taken.contains($0.id)
+                    $0.source == .opencode
+                    && !$0.isSubagent
+                    && !taken.contains($0.sessionID)
                     && ($0.timeCreated >= launch || $0.timeUpdated >= launch)
                 }
                 .sorted(by: {
@@ -364,9 +378,8 @@ final class AppModel: ObservableObject {
                 })
                 .first
             if let match {
-                updateSession(session.id) { $0.opencodeSessionID = match.id }
-                taken.insert(match.id)
-                persist()
+                applySessionBinding(session.id, to: match.sessionID)
+                taken.insert(match.sessionID)
             }
         }
     }
@@ -391,7 +404,8 @@ final class AppModel: ObservableObject {
 
     func copyLaunchCommand(_ id: UUID) {
         guard let session = session(id) else { return }
-        let command = "cd \(CommandBuilder.shellEscape(session.workingDirectory)) && \(session.launchCommand)"
+        let launchCommand = CommandBuilder.command(for: session)
+        let command = "cd \(CommandBuilder.shellEscape(session.workingDirectory)) && \(launchCommand)"
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(command, forType: .string)
     }
@@ -523,25 +537,34 @@ final class AppModel: ObservableObject {
         Task.detached(priority: .utility) { [weak self] in
             var promptsBySessionID: [UUID: String] = [:]
             var modelInfoBySessionID: [UUID: OpenCodeModelInfo] = [:]
+            let historySessions = HistoryStore.listSessions()
             for session in sessionSnapshot {
-                guard let bound = session.opencodeSessionID else { continue }
-                let prompt = (try? OpenCodeHistoryStore.firstUserPrompt(sessionID: bound)) ?? nil
-                if let prompt, !prompt.isEmpty {
-                    promptsBySessionID[session.id] = prompt
-                }
-                if let info = try? OpenCodeHistoryStore.modelInfo(sessionID: bound) {
-                    modelInfoBySessionID[session.id] = info
+                guard let bound = session.boundSessionID else { continue }
+                if session.agent == .opencode {
+                    let prompt = (try? OpenCodeHistoryStore.firstUserPrompt(sessionID: bound)) ?? nil
+                    if let prompt, !prompt.isEmpty {
+                        promptsBySessionID[session.id] = prompt
+                    }
+                    if let info = try? OpenCodeHistoryStore.modelInfo(sessionID: bound) {
+                        modelInfoBySessionID[session.id] = info
+                    }
+                } else if let history = historySessions.first(where: {
+                    $0.source == session.agent && $0.sessionID == bound
+                }) {
+                    promptsBySessionID[session.id] = history.title
                 }
             }
             let directories = Array(Set(sessionSnapshot.map(\.workingDirectory)))
-            let recentSessions = Self.groupRecentSessions(by: directories)
+            let recentSessions = Self.groupRecentSessions(by: directories, from: historySessions)
             await self?.applyHistory(promptsBySessionID, modelInfoBySessionID, recentSessions)
         }
     }
 
-    private nonisolated static func groupRecentSessions(by directories: [String]) -> [String: [OpenCodeHistorySession]] {
-        guard let sessions = try? OpenCodeHistoryStore.listSessions() else { return [:] }
-        var grouped: [String: [OpenCodeHistorySession]] = [:]
+    private nonisolated static func groupRecentSessions(
+        by directories: [String],
+        from sessions: [HistorySession]
+    ) -> [String: [HistorySession]] {
+        var grouped: [String: [HistorySession]] = [:]
         for directory in directories {
             grouped[directory] = sessions
                 .filter { !$0.isSubagent && $0.directory == directory }

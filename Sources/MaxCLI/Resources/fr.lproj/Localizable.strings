@@ -56,13 +56,13 @@
 "context.copyLaunchCommand" = "Copier la commande de lancement";
 "context.revealInFinder" = "Révéler dans le Finder";
 "context.close" = "Fermer";
-"context.bindOpenCode" = "Lier à la session opencode";
-"context.noOpenCodeSessions" = "Aucune session opencode trouvée";
+"context.bindSession" = "Lier à la session %@";
+"context.noHistorySessions" = "Aucune session %@ trouvée";
 "context.unbind" = "Délier";
 "context.bindNeedsRestart" = "Redémarrez pour appliquer";
 "bind.restartTitle" = "Redémarrer pour appliquer la liaison ?";
 "bind.restartMessage" = "La session est en cours d'exécution. La nouvelle liaison sera appliquée après le redémarrage.";
-"context.boundToOpenCode" = "Lié à une session opencode";
+"context.boundToSession" = "Lié à une session %@";
 "sidebar.sessionActions" = "Actions de session";
 
 /* Volet terminal */

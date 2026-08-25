@@ -56,13 +56,13 @@
 "context.copyLaunchCommand" = "复制启动命令";
 "context.revealInFinder" = "在 Finder 中显示";
 "context.close" = "关闭";
-"context.bindOpenCode" = "绑定 opencode Session";
-"context.noOpenCodeSessions" = "找不到 opencode session";
+"context.bindSession" = "绑定 %@ Session";
+"context.noHistorySessions" = "找不到 %@ session";
 "context.unbind" = "解除绑定";
 "context.bindNeedsRestart" = "重启后才会生效";
 "bind.restartTitle" = "要重启以应用绑定吗？";
 "bind.restartMessage" = "Session 正在运行，重启后新的绑定才会生效。";
-"context.boundToOpenCode" = "已绑定 opencode session";
+"context.boundToSession" = "已绑定 %@ session";
 "sidebar.sessionActions" = "Session 操作";
 
 /* 终端面板 */

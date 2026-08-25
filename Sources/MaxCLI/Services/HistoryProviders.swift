@@ -37,6 +37,7 @@ private enum HistoryProviderSupport {
 
     static func session(
         id: String,
+        sessionID: String? = nil,
         title: String,
         directory: String,
         agent: AgentKind,
@@ -48,6 +49,7 @@ private enum HistoryProviderSupport {
     ) -> HistorySession {
         HistorySession(
             id: id,
+            sessionID: sessionID,
             title: title,
             directory: directory,
             agent: agent.rawValue,
@@ -166,6 +168,7 @@ enum CodexHistoryProvider {
         }
         let session = HistoryProviderSupport.session(
             id: HistoryRecordID.file(source: .codex, path: url.path),
+            sessionID: sessionID,
             title: HistoryProviderSupport.title(for: messages, fallback: "Codex session"),
             directory: directory.isEmpty ? HistoryPath.codexHome.path : directory,
             agent: .codex,
@@ -293,6 +296,7 @@ enum ClaudeHistoryProvider {
         let fallbackDirectory = url.deletingLastPathComponent().lastPathComponent
         let session = HistoryProviderSupport.session(
             id: HistoryRecordID.file(source: .claude, path: url.path),
+            sessionID: sessionID,
             title: HistoryProviderSupport.title(for: messages, fallback: "Claude Code session"),
             directory: directory.isEmpty ? fallbackDirectory : directory,
             agent: .claude,
@@ -368,6 +372,7 @@ enum GeminiHistoryProvider {
         sessionID = sessionID.isEmpty ? url.deletingPathExtension().lastPathComponent : sessionID
         let session = HistoryProviderSupport.session(
             id: HistoryRecordID.file(source: .gemini, path: url.path),
+            sessionID: sessionID,
             title: HistoryProviderSupport.title(for: messages, fallback: "Gemini CLI session"),
             directory: directory ?? HistoryPath.geminiHome.path,
             agent: .gemini,
@@ -446,6 +451,7 @@ enum CursorHistoryProvider {
         let parentID = url.pathComponents.contains("subagents") ? url.deletingLastPathComponent().deletingLastPathComponent().lastPathComponent : nil
         let session = HistoryProviderSupport.session(
             id: HistoryRecordID.file(source: .cursor, path: url.path),
+            sessionID: sessionID,
             title: HistoryProviderSupport.title(for: messages, fallback: "Cursor Agent session"),
             directory: directory,
             agent: .cursor,
@@ -585,6 +591,7 @@ enum CopilotHistoryProvider {
 
         let session = HistoryProviderSupport.session(
             id: HistoryRecordID.file(source: .copilot, path: url.path),
+            sessionID: sessionID,
             title: HistoryProviderSupport.title(for: messages, fallback: "GitHub Copilot session"),
             directory: directory.isEmpty ? HistoryPath.copilotHome.path : directory,
             agent: .copilot,
@@ -621,6 +628,9 @@ enum GrokHistoryProvider {
         let directory = HistoryJSON.string(
             info?["cwd"] ?? summary["cwd"] ?? summary["working_directory"] ?? summary["workingDirectory"]
         ) ?? fallbackDirectory(for: url)
+        let sessionID = HistoryJSON.string(
+            info?["id"] ?? info?["session_id"] ?? summary["session_id"] ?? summary["sessionId"] ?? summary["id"]
+        ) ?? url.deletingLastPathComponent().lastPathComponent
         let model = HistoryJSON.string(
             summary["current_model_id"] ?? summary["model"] ?? summary["model_id"]
         )
@@ -682,6 +692,7 @@ enum GrokHistoryProvider {
 
         let session = HistoryProviderSupport.session(
             id: HistoryRecordID.file(source: .grok, path: url.path),
+            sessionID: sessionID,
             title: title ?? HistoryProviderSupport.title(for: messages, fallback: "Grok session"),
             directory: directory,
             agent: .grok,

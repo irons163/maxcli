@@ -56,13 +56,13 @@
 "context.copyLaunchCommand" = "Copy Launch Command";
 "context.revealInFinder" = "Reveal in Finder";
 "context.close" = "Close";
-"context.bindOpenCode" = "Bind to opencode Session";
-"context.noOpenCodeSessions" = "No opencode sessions found";
+"context.bindSession" = "Bind to %@ session";
+"context.noHistorySessions" = "No %@ sessions found";
 "context.unbind" = "Unbind";
 "context.bindNeedsRestart" = "Restart to apply";
 "bind.restartTitle" = "Restart to apply binding?";
 "bind.restartMessage" = "The session is running. The new binding will take effect after restart.";
-"context.boundToOpenCode" = "Bound to an opencode session";
+"context.boundToSession" = "Bound to a %@ session";
 "sidebar.sessionActions" = "Session actions";
 
 /* Terminal pane */

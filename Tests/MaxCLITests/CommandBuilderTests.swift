@@ -85,6 +85,42 @@ final class CommandBuilderTests: XCTestCase {
         )
     }
 
+    func testResumesBoundSessionsWithEachNativeCLIForm() {
+        let cases: [(AgentKind, String, String)] = [
+            (.codex, "codex-id", "cd '/tmp'; exec codex resume 'codex-id' --full-auto"),
+            (.claude, "claude-id", "cd '/tmp'; exec claude --resume 'claude-id' --verbose"),
+            (.gemini, "gemini-id", "cd '/tmp'; exec gemini --resume 'gemini-id'"),
+            (.cursor, "cursor-id", "cd '/tmp'; exec agent --resume='cursor-id'"),
+            (.copilot, "copilot-id", "cd '/tmp'; exec copilot --resume='copilot-id'"),
+            (.grok, "grok-id", "cd '/tmp'; exec grok --resume 'grok-id'"),
+        ]
+
+        for (agent, sessionID, expectedCommand) in cases {
+            let arguments: String
+            switch agent {
+            case .codex: arguments = "--full-auto"
+            case .claude: arguments = "--verbose"
+            default: arguments = ""
+            }
+            let session = WorkspaceSession(
+                title: agent.displayName,
+                agent: agent,
+                workingDirectory: "/tmp",
+                arguments: arguments,
+                boundSessionID: sessionID
+            )
+
+            XCTAssertEqual(
+                CommandBuilder.loginShellArguments(
+                    for: session,
+                    executableLocator: .isolated
+                ),
+                ["-l", "-c", expectedCommand],
+                "unexpected resume command for \(agent.rawValue)"
+            )
+        }
+    }
+
     func testEmptyCommandFallsBackToInteractiveShell() {
         let session = WorkspaceSession(
             title: "Empty",

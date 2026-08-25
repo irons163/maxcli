@@ -2,6 +2,8 @@ import Foundation
 
 struct HistorySession: Identifiable, Hashable, Sendable {
     let id: String
+    /// Provider-native ID passed to the agent's resume command.
+    let sessionID: String
     let title: String
     let directory: String
     let agent: String?
@@ -14,6 +16,7 @@ struct HistorySession: Identifiable, Hashable, Sendable {
 
     init(
         id: String,
+        sessionID: String? = nil,
         title: String,
         directory: String,
         agent: String?,
@@ -25,6 +28,7 @@ struct HistorySession: Identifiable, Hashable, Sendable {
         source: AgentKind = .opencode
     ) {
         self.id = id
+        self.sessionID = sessionID ?? id
         self.title = title
         self.directory = directory
         self.agent = agent

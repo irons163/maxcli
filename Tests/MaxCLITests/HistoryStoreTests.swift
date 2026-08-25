@@ -82,6 +82,17 @@ final class HistoryStoreTests: XCTestCase {
         XCTAssertTrue(sessions.contains { $0.title == "Fix Codex" && $0.directory == "/tmp/codex" })
         XCTAssertTrue(sessions.contains { $0.title == "Review Claude" && $0.model == "claude-test" })
         XCTAssertTrue(sessions.contains { $0.title == "Fix Grok" && $0.directory == "/tmp/grok" })
+        XCTAssertEqual(
+            Dictionary(uniqueKeysWithValues: sessions.map { ($0.source, $0.sessionID) }),
+            [
+                .codex: "codex-id",
+                .claude: "claude-id",
+                .gemini: "gemini-id",
+                .cursor: "cursor-id",
+                .copilot: "copilot-id",
+                .grok: "grok-id",
+            ]
+        )
     }
 
     func testTranscriptUsesNamespacedFileIDAndParsesParts() throws {

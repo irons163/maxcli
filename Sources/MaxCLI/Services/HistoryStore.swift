@@ -400,6 +400,7 @@ private extension HistorySession {
     func with(source: AgentKind, id: String? = nil) -> HistorySession {
         HistorySession(
             id: id ?? self.id,
+            sessionID: sessionID,
             title: title,
             directory: directory,
             agent: agent,

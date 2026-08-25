@@ -16,31 +16,56 @@ enum CommandBuilder {
         for session: WorkspaceSession,
         executableLocator: ExecutableLocator = ExecutableLocator()
     ) -> [String] {
-        let command = launchCommand(for: session, executableLocator: executableLocator)
+        let command = command(for: session, executableLocator: executableLocator)
         let fallback = "printf '\\033[31mMaxCLI: command is empty\\033[0m\\n'; exec \"$SHELL\" -l"
         let executableCommand = command.isEmpty ? fallback : "exec \(command)"
         return ["-l", "-c", "cd \(shellEscape(session.workingDirectory)); \(executableCommand)"]
     }
 
-    private static func launchCommand(
+    static func command(
         for session: WorkspaceSession,
-        executableLocator: ExecutableLocator
+        executableLocator: ExecutableLocator = ExecutableLocator()
     ) -> String {
         let command = session.launchCommand.trimmingCharacters(in: .whitespacesAndNewlines)
-        let resumeFlag = resumeFlag(for: session)
-        guard !command.isEmpty, session.agent != .custom,
-              let executablePath = executableLocator.path(for: session.agent)
-        else { return command.isEmpty ? command : "\(command)\(resumeFlag)" }
+        guard !command.isEmpty else { return "" }
+        guard session.agent != .custom else { return command }
 
-        let escapedExecutable = shellEscape(executablePath)
+        let resolvedExecutable = executableLocator.path(for: session.agent)
+        let executable = resolvedExecutable ?? session.agent.executable
+        guard !executable.isEmpty else { return command }
+        let executableToken = resolvedExecutable.map(shellEscape) ?? executable
         let arguments = session.arguments.trimmingCharacters(in: .whitespacesAndNewlines)
-        return arguments.isEmpty
-            ? "\(escapedExecutable)\(resumeFlag)"
-            : "\(escapedExecutable)\(resumeFlag) \(arguments)"
+        let resumeArguments = resumeArguments(for: session)
+        var parts = [executableToken]
+
+        // OpenCode accepts its session flag after normal arguments. The other
+        // CLIs expose resume as a subcommand or a leading option.
+        if session.agent != .opencode {
+            parts.append(contentsOf: resumeArguments)
+        }
+        if !arguments.isEmpty {
+            parts.append(arguments)
+        }
+        if session.agent == .opencode {
+            parts.append(contentsOf: resumeArguments)
+        }
+        return parts.joined(separator: " ")
     }
 
-    private static func resumeFlag(for session: WorkspaceSession) -> String {
-        guard session.agent == .opencode, let sessionID = session.opencodeSessionID else { return "" }
-        return " -s \(shellEscape(sessionID))"
+    private static func resumeArguments(for session: WorkspaceSession) -> [String] {
+        guard let sessionID = session.boundSessionID else { return [] }
+        let escapedID = shellEscape(sessionID)
+        switch session.agent {
+        case .codex:
+            return ["resume", escapedID]
+        case .claude, .gemini, .grok:
+            return ["--resume", escapedID]
+        case .cursor, .copilot:
+            return ["--resume=\(escapedID)"]
+        case .opencode:
+            return ["-s", escapedID]
+        case .shell, .custom:
+            return []
+        }
     }
 }

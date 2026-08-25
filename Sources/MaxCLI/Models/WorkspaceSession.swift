@@ -26,6 +26,9 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
     var workingDirectory: String
     var arguments: String
     var customCommand: String
+    /// Native conversation/session ID used by the agent CLI to resume history.
+    var boundSessionID: String?
+    /// Kept for decoding older MaxCLI session files.
     var opencodeSessionID: String?
     var iconName: String?
     var iconColorName: String?
@@ -44,6 +47,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
         workingDirectory: String,
         arguments: String = "",
         customCommand: String = "",
+        boundSessionID: String? = nil,
         opencodeSessionID: String? = nil,
         iconName: String? = nil,
         iconColorName: String? = nil,
@@ -61,7 +65,8 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
         self.workingDirectory = workingDirectory
         self.arguments = arguments
         self.customCommand = customCommand
-        self.opencodeSessionID = opencodeSessionID
+        self.boundSessionID = boundSessionID ?? opencodeSessionID
+        self.opencodeSessionID = opencodeSessionID ?? (agent == .opencode ? boundSessionID : nil)
         self.iconName = iconName
         self.iconColorName = iconColorName
         self.isPinned = isPinned
@@ -75,7 +80,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case id, title, agent, workingDirectory, arguments, customCommand
-        case opencodeSessionID, iconName, iconColorName, isPinned, manualOrder
+        case boundSessionID, opencodeSessionID, iconName, iconColorName, isPinned, manualOrder
         case createdAt, lastActivatedAt, lastActivityAt, activity, isTransient
     }
 
@@ -87,7 +92,9 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
         workingDirectory = try c.decode(String.self, forKey: .workingDirectory)
         arguments = try c.decodeIfPresent(String.self, forKey: .arguments) ?? ""
         customCommand = try c.decodeIfPresent(String.self, forKey: .customCommand) ?? ""
-        opencodeSessionID = try c.decodeIfPresent(String.self, forKey: .opencodeSessionID)
+        let legacyOpenCodeID = try c.decodeIfPresent(String.self, forKey: .opencodeSessionID)
+        boundSessionID = try c.decodeIfPresent(String.self, forKey: .boundSessionID) ?? legacyOpenCodeID
+        opencodeSessionID = legacyOpenCodeID ?? (agent == .opencode ? boundSessionID : nil)
         iconName = try c.decodeIfPresent(String.self, forKey: .iconName)
         iconColorName = try c.decodeIfPresent(String.self, forKey: .iconColorName)
         isPinned = try c.decodeIfPresent(Bool.self, forKey: .isPinned) ?? false
@@ -107,6 +114,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
         try c.encode(workingDirectory, forKey: .workingDirectory)
         try c.encode(arguments, forKey: .arguments)
         try c.encode(customCommand, forKey: .customCommand)
+        try c.encodeIfPresent(boundSessionID, forKey: .boundSessionID)
         try c.encodeIfPresent(opencodeSessionID, forKey: .opencodeSessionID)
         try c.encodeIfPresent(iconName, forKey: .iconName)
         try c.encodeIfPresent(iconColorName, forKey: .iconColorName)

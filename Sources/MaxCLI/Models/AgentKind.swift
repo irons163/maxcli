@@ -82,4 +82,13 @@ enum AgentKind: String, Codable, CaseIterable, Identifiable, Sendable {
         case .shell, .custom: ""
         }
     }
+
+    var supportsHistoryBinding: Bool {
+        switch self {
+        case .codex, .claude, .gemini, .cursor, .copilot, .opencode, .grok:
+            true
+        case .shell, .custom:
+            false
+        }
+    }
 }

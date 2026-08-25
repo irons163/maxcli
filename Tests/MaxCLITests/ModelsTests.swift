@@ -205,6 +205,7 @@ final class ModelsTests: XCTestCase {
 
         XCTAssertEqual(session.arguments, "")
         XCTAssertEqual(session.customCommand, "")
+        XCTAssertNil(session.boundSessionID)
         XCTAssertNil(session.opencodeSessionID)
         XCTAssertNil(session.iconName)
         XCTAssertNil(session.iconColorName)
@@ -217,7 +218,7 @@ final class ModelsTests: XCTestCase {
 
     func testEncodeDecodeRoundTripPreservesAllFields() throws {
         var session = makeSession(iconName: "star", iconColorName: "teal", isPinned: true)
-        session.opencodeSessionID = "sess_1"
+        session.boundSessionID = "sess_1"
         session.manualOrder = 3
         session.lastActivityAt = Date(timeIntervalSince1970: 100)
         session.activity = .attention

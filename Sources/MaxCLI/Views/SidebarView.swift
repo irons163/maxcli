@@ -107,27 +107,29 @@ struct SidebarView: View {
                             Button(model.tr("context.start")) { model.start(session.id) }
                         }
                         Button(model.tr("context.restart")) { model.restart(session.id) }
-                        if session.agent == .opencode {
-                            Menu(model.tr("context.bindOpenCode")) {
-                                if model.recentSessionsByDirectory[session.workingDirectory]?.isEmpty != false {
-                                    Text(model.tr("context.noOpenCodeSessions"))
+                        if session.agent.supportsHistoryBinding {
+                            let availableSessions = model.recentSessionsByDirectory[session.workingDirectory, default: []]
+                                .filter { $0.source == session.agent && !$0.isSubagent }
+                            Menu(model.trf("context.bindSession", session.agent.displayName)) {
+                                if availableSessions.isEmpty {
+                                    Text(model.trf("context.noHistorySessions", session.agent.displayName))
                                 }
-                                ForEach(model.recentSessionsByDirectory[session.workingDirectory] ?? []) { entry in
+                                ForEach(availableSessions) { entry in
                                     Button {
-                                        model.bindOpenCodeSession(session.id, to: entry.id)
+                                        model.bindSession(session.id, to: entry)
                                     } label: {
                                         Label(
                                             entry.title,
-                                            systemImage: session.opencodeSessionID == entry.id
+                                            systemImage: session.boundSessionID == entry.sessionID
                                                 ? "checkmark.circle.fill"
                                                 : "circle"
                                         )
                                     }
                                 }
-                                if session.opencodeSessionID != nil {
+                                if session.boundSessionID != nil {
                                     Divider()
                                     Button(model.tr("context.unbind")) {
-                                        model.bindOpenCodeSession(session.id, to: nil)
+                                        model.bindSession(session.id, to: nil)
                                     }
                                 }
                                 if model.runtime(for: session.id)?.isRunning == true {
@@ -286,11 +288,11 @@ private struct SessionRow: View {
                             .font(.system(size: 8))
                             .foregroundStyle(.secondary)
                     }
-                    if session.opencodeSessionID != nil {
+                    if session.boundSessionID != nil {
                         Image(systemName: "link")
                             .font(.system(size: 8))
                             .foregroundStyle(.secondary)
-                            .help(model.tr("context.boundToOpenCode"))
+                            .help(model.trf("context.boundToSession", session.agent.displayName))
                     }
                 }
                 if let preview = model.firstPrompts[session.id] {
