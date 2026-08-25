@@ -63,7 +63,7 @@ fi
 if [[ -n "$BUILD_TRIPLE" ]]; then
     EXPECTED_ARCH="${BUILD_TRIPLE%%-*}"
     APP_ARCHES="$(lipo -archs "$APP_BINARY")"
-    if ! rg -q "(^|[[:space:]])${EXPECTED_ARCH}([[:space:]]|$)" <<<"$APP_ARCHES"; then
+    if ! grep -Eq "(^|[[:space:]])${EXPECTED_ARCH}([[:space:]]|$)" <<<"$APP_ARCHES"; then
         echo "App binary architectures ($APP_ARCHES) do not include $EXPECTED_ARCH." >&2
         exit 1
     fi
@@ -125,7 +125,7 @@ if [[ "$NOTARIZE" == "1" ]]; then
     echo "==> Notarizing DMG"
     NOTARY_OUTPUT="$(xcrun notarytool submit "$DMG_PATH" --keychain-profile "$NOTARY_PROFILE" --wait 2>&1)"
     echo "$NOTARY_OUTPUT"
-    if ! rg -q 'status:[[:space:]]+Accepted' <<<"$NOTARY_OUTPUT"; then
+    if ! grep -Eq 'status:[[:space:]]+Accepted' <<<"$NOTARY_OUTPUT"; then
         echo "Notarization failed." >&2
         exit 1
     fi
