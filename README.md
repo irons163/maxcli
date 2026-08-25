@@ -1,24 +1,93 @@
 # MaxCLI
 
-MaxCLI 是一個以 SwiftUI 製作的 macOS AI CLI 控制台。它把 Codex、Claude Code、Gemini CLI 等互動式工具放進真正的 PTY 終端，重點不是瀏覽舊對話，而是讓你同時操作十幾個正在工作的 agent，仍然找得到、切得快、看得懂哪一個需要注意。
+> macOS 上的多 agent CLI 控制台：在同一個視窗裡，同時操作、監看與恢復多個終端工作階段。
 
-## 目前功能
+[![Latest release](https://img.shields.io/github/v/release/irons163/maxcli?display_name=tag)](https://github.com/irons163/maxcli/releases/latest)
+[![macOS](https://img.shields.io/badge/macOS-14%2B-111111)](https://github.com/irons163/maxcli/releases/latest)
 
-- 每個 session 有獨立 PTY、工作目錄、CLI 與啟動參數；切換畫面不會停止程序。
-- Focus 模式專心操作一個終端；Grid 模式同時監看多個終端；Active 模式只顯示進行中的 session，且左側 sidebar 改以「最新 update」排序，有新輸出的 session 自動浮到最上方。
-- 緊湊 sidebar 顯示 Running、Attention、Total，支援搜尋、agent 篩選、釘選與右鍵操作。
-- `⌘1`…`⌘9` 固定快速切換前九個 session，`⌘K` 依最近使用順序搜尋全部 session。
-- 可複製 session，在同一 repo 快速開第二或第三個 agent。
-- 程序結束、失敗或送出 terminal bell 時會顯示狀態；背景 session 會標成 Needs attention。
-- 關閉後保存 session 設定；下次啟動可逐一或一次重新啟動，但不假裝能接回已不存在的程序。
-- 介面支援英文、繁體中文、簡體中文、法文、西班牙文、日文與韓文；預設跟隨系統語言，可在 sidebar 的 `•••` 選單或「Language」選單手動切換（未支援的系統語言會自動回退到英文）。
-- History 以唯讀方式聚合 Codex、Claude Code、Gemini CLI、Cursor Agent、GitHub Copilot CLI、Grok 與 OpenCode 的本機 session transcript；單一 agent 沒有紀錄時不影響其他來源。
-- Sidebar 可將支援的 agent session 綁定到對應的本機 History，重啟後使用各 agent 的原生 resume 參數接回。
-- 純本機運作，不上傳 terminal 內容。
+![MaxCLI 多 session 工作區](docs/images/maxcli-overview.png)
 
-內建啟動設定：Codex、Claude Code、Gemini CLI、Cursor Agent、GitHub Copilot CLI、OpenCode、Grok、一般 Shell，以及任意自訂命令。
+MaxCLI 是以 SwiftUI 製作的 macOS app。它把 Codex、Claude Code、Gemini CLI、OpenCode 等互動式工具放進真正的 PTY 終端；每個 session 都是獨立程序、工作目錄與啟動參數。你可以同時開十幾個 agent，快速知道誰正在執行、誰需要注意，以及下一步該接哪個工作。
 
-## 開發與執行
+## 為什麼使用 MaxCLI
+
+- 同時執行多個 agent，不必在終端分頁之間來回尋找。
+- 以 Focus、Grid、Active 三種工作區，在操作與總覽之間快速切換。
+- 保留各個 CLI 的原生互動介面、登入狀態與 resume 能力。
+- 聚合本機 History，從過去的對話找回 session，再綁定回目前的工作區。
+- 純本機運作；MaxCLI 不上傳 terminal 內容，也不代替各 CLI 管理帳號。
+
+## 工作區
+
+| 模式 | 適合情境 |
+| --- | --- |
+| **Focus** | 專心操作目前選取的單一終端。 |
+| **Grid** | 同時監看多個 session；雙擊 pane 會切回該 session 的 Focus。 |
+| **Active** | 只顯示正在執行或有活動的 session，適合等待多個 agent 回應。 |
+
+Active 模式會維持穩定的工作區順序；session 的輸出與背景提醒會反映在 sidebar，不會因為每個思考中的狀態事件而持續交換位置。
+
+## 新增 Session
+
+![MaxCLI 新增 Session](docs/images/maxcli-new-session.png)
+
+新增 session 時可以選擇 agent、工作目錄、模型或 provider、啟動參數、圖示與顏色，也可以釘選重要 session。除了內建 agent，還能使用一般 Shell 或輸入任意 Custom command。
+
+## 支援的 CLI
+
+MaxCLI 會從目前的 shell 環境尋找可執行檔；請先依照各工具的官方文件完成安裝與登入。
+
+| Agent | 預設 executable |
+| --- | --- |
+| Codex | `codex` |
+| Claude Code | `claude` |
+| Gemini CLI | `gemini` |
+| Cursor Agent | `agent` |
+| GitHub Copilot CLI | `copilot` |
+| OpenCode | `opencode` |
+| Grok | `grok` |
+| Shell | 目前使用者的 login shell |
+| Custom | 自訂命令 |
+
+## History 與 Resume
+
+History 以唯讀方式聚合各工具保存在本機的 session transcript，目前支援：
+
+- Codex
+- Claude Code
+- Gemini CLI
+- Cursor Agent
+- GitHub Copilot CLI
+- Grok
+- OpenCode
+
+可以從 History 找到舊 session，再從 sidebar 將它綁定到對應的 agent session。重啟時，MaxCLI 會使用該 agent 的原生 resume 參數；找不到原始紀錄時，不會影響其他來源。
+
+## 下載與安裝
+
+前往 [Latest Releases](https://github.com/irons163/maxcli/releases/latest)，依照 Mac 的處理器下載：
+
+- Apple Silicon：M1、M2、M3、M4 等 Mac
+- Intel：Intel 處理器 Mac
+
+開啟 DMG 後，將 `MaxCLI.app` 拖到 `Applications`。MaxCLI 內建 Sparkle，後續可在 app 內檢查更新。
+
+需求：macOS 14 或以上。
+
+## 鍵盤操作
+
+| 快捷鍵 | 動作 |
+| --- | --- |
+| `⌘N` | 新增 session |
+| `⌘K` | 快速搜尋並切換 session |
+| `⌘1`…`⌘9` | 切到 sidebar 前九個 session |
+| `⌘[` / `⌘]` | 上一個／下一個 session |
+| `⌘D` | 複製目前 session |
+| `⌘⇧R` | 重啟目前 session |
+| `⌘⇧.` | 停止目前 session |
+| `⌘⇧G` | Focus／Grid／Active 切換 |
+
+## 從原始碼執行
 
 需求：macOS 14+、Xcode 16+。
 
@@ -28,37 +97,36 @@ swift test
 swift run MaxCLI
 ```
 
-也可以直接用 Xcode 開啟 `Package.swift`。專案使用 [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm) 提供 VT100/Xterm 與本機 pseudo-terminal 支援，並使用 [Sparkle](https://sparkle-project.org/) 提供 App 內更新。
-
-建立可雙擊的 ad-hoc signed app：
+建立可以雙擊開啟的本機 app：
 
 ```sh
 make app
 open build/MaxCLI.app
 ```
 
-MaxCLI 不啟用 App Sandbox，因為 child process 必須能存取你指定的 repository、登入 shell 的 CLI 與開發工具。正式 release 前需設定 Developer ID 與 notarization secrets；每次 release 也要同步更新 `Packaging/Info.plist` 的 `CFBundleShortVersionString` 與 `CFBundleVersion`。
+執行 Sparkle appcast 測試：
 
-正式 release 由 `.github/workflows/release-dmg.yml` 建立 arm64／Intel DMG、上傳 GitHub Release，並產生 Sparkle appcast。Release workflow 需要 `APPLE_CERTIFICATE_P12_BASE64`、`APPLE_CERTIFICATE_PASSWORD`、`KEYCHAIN_PASSWORD`、`APPLE_TEAM_ID`、`APPLE_API_KEY_ID`、`APPLE_API_ISSUER_ID` 與 `APPLE_API_PRIVATE_KEY_BASE64` secrets。
+```sh
+make appcast-test
+```
 
-## 鍵盤操作
+也可以直接用 Xcode 開啟 `Package.swift`。專案使用 [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm) 提供 VT100／Xterm 與本機 pseudo-terminal 支援，並使用 [Sparkle](https://sparkle-project.org/) 提供 app 內更新。
 
-| 快捷鍵 | 動作 |
-| --- | --- |
-| `⌘N` | 新增 session |
-| `⌘K` | 快速搜尋並切換 |
-| `⌘1`…`⌘9` | 切到 sidebar 前九個 session |
-| `⌘[` / `⌘]` | 上一個 / 下一個 session |
-| `⌘D` | 複製目前 session |
-| `⌘⇧R` | 重啟目前 session |
-| `⌘⇧.` | 停止目前 session |
-| `⌘⇧G` | Focus / Grid / Active 切換 |
+## 權限與 release
 
-## 十幾個 session 的建議用法
+MaxCLI 不啟用 App Sandbox，因為 child process 必須能存取你指定的 repository、登入 shell 的 CLI 與開發工具。正式 DMG 由 `.github/workflows/release-dmg.yml` 建立 arm64／Intel 套件、上傳 GitHub Release，並產生 Sparkle appcast。
+
+正式 release workflow 需要設定以下 GitHub Actions secrets：
+
+`APPLE_CERTIFICATE_P12_BASE64`、`APPLE_CERTIFICATE_PASSWORD`、`KEYCHAIN_PASSWORD`、`APPLE_TEAM_ID`、`APPLE_API_KEY_ID`、`APPLE_API_ISSUER_ID`、`APPLE_API_PRIVATE_KEY_BASE64`。
+
+每次 release 也要同步更新 `Packaging/Info.plist` 的 `CFBundleShortVersionString` 與 `CFBundleVersion`。
+
+## 多 session 使用建議
 
 1. 用 repository 與任務命名，例如 `api · review`、`web · tests`，不要只叫 `Claude 1`。
-2. 長期主線釘選在最上方；前九個位置會保持穩定，適合建立肌肉記憶。
-3. 平時用 Focus，等待 agent 時切 Grid；Agent 有動靜時切 Active，最新更新的 session 會排在 sidebar 最上面；橘色/紅色邊框只處理需要注意的 session。
+2. 把長期主線釘選在最上方；前九個位置適合建立穩定的快捷鍵習慣。
+3. 平時用 Focus，等待 agent 時切 Grid；需要集中處理有動靜的 session 時切 Active。
 4. 同一個 repo 要平行處理時先 Duplicate，再更換名稱或 CLI；每個 session 仍是獨立程序。
 
-更完整的互動與架構取捨在 [docs/DESIGN.md](docs/DESIGN.md)。
+更完整的互動與架構取捨請看 [docs/DESIGN.md](docs/DESIGN.md)。
