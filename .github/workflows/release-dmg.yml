@@ -4,6 +4,11 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing GitHub release tag to upload unsigned prerelease DMGs to
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -37,7 +42,7 @@ jobs:
           echo "DEVELOPER_DIR=$XCODE_APP/Contents/Developer" >> "$GITHUB_ENV"
 
       - name: Validate release secrets
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' && github.event.release.prerelease == false
         shell: bash
         env:
           APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
@@ -64,7 +69,7 @@ jobs:
           done
 
       - name: Import Developer ID certificate
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' && github.event.release.prerelease == false
         shell: bash
         env:
           APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
@@ -95,7 +100,7 @@ jobs:
           fi
 
       - name: Configure notarytool profile
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' && github.event.release.prerelease == false
         shell: bash
         env:
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
@@ -113,7 +118,7 @@ jobs:
       - name: Resolve release version
         shell: bash
         env:
-          RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || '' }}
+          RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.release_tag || '' }}
         run: |
           set -euo pipefail
           APP_VERSION="$(plutil -extract CFBundleShortVersionString raw -o - Packaging/Info.plist)"
@@ -135,8 +140,8 @@ jobs:
           APP_BUILD_VERSION: ${{ env.BUILD_VERSION }}
           BUILD_TRIPLE: ${{ matrix.arch.triple }}
           ARCH_LABEL: ${{ matrix.arch.label }}
-          CODESIGN_IDENTITY: ${{ github.event_name == 'release' && 'Developer ID Application' || '-' }}
-          NOTARIZE: ${{ github.event_name == 'release' && '1' || '0' }}
+          CODESIGN_IDENTITY: ${{ github.event_name == 'release' && github.event.release.prerelease == false && 'Developer ID Application' || '-' }}
+          NOTARIZE: ${{ github.event_name == 'release' && github.event.release.prerelease == false && '1' || '0' }}
           NOTARY_PROFILE: AC_NOTARY
         run: |
           set -euo pipefail
@@ -150,11 +155,11 @@ jobs:
           path: dist/*.dmg
 
       - name: Attach DMG to GitHub Release
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.release_tag }}
         run: gh release upload "$RELEASE_TAG" dist/*.dmg --clobber
 
   publish-sparkle-appcast:
