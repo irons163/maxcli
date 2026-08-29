@@ -81,6 +81,10 @@ final class TerminalRuntime: NSObject, @preconcurrency LocalProcessTerminalViewD
         terminalView.wantsLayer = true
         terminalView.layer?.backgroundColor = terminalView.nativeBackgroundColor.cgColor
         terminalView.getTerminal().setCursorStyle(.steadyBlock)
+        // Default is 320 MB per terminal; with 6+ sessions and frequent image
+        // drops this can push the app past several GB. Keep it comfortable for
+        // normal TUI use while staying well below the 8 GB the user hit.
+        terminalView.getTerminal().options.kittyImageCacheLimitBytes = 32 * 1024 * 1024
     }
 
     func start(session: WorkspaceSession) {

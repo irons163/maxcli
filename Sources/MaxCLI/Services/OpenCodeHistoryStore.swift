@@ -225,6 +225,12 @@ enum OpenCodeHistoryStore {
         let kind = OpenCodePartKind(rawValue: dict["type"] as? String ?? "")
         let toolState = dict["state"] as? [String: Any]
         let toolInput = toolState?["input"]
+        let output = toolState?["output"] as? String
+        let truncatedOutput = output.map { $0.count > 200_000 ? String($0.prefix(200_000)) + "…(truncated)" : $0 }
+        var fileURL = dict["url"] as? String
+        if let url = fileURL, url.hasPrefix("data:") && url.count > 2_048 {
+            fileURL = nil
+        }
         return OpenCodePart(
             id: id,
             kind: kind,
@@ -232,9 +238,9 @@ enum OpenCodeHistoryStore {
             toolName: dict["tool"] as? String,
             toolStatus: toolState?["status"] as? String,
             toolInput: toolInput.map { stringifyJSON($0) },
-            toolOutput: toolState?["output"] as? String,
+            toolOutput: truncatedOutput,
             filename: dict["filename"] as? String,
-            fileURL: dict["url"] as? String,
+            fileURL: fileURL,
             patchFiles: dict["files"] as? [String] ?? [],
             synthetic: dict["synthetic"] as? Bool ?? false,
             ignored: dict["ignored"] as? Bool ?? false
