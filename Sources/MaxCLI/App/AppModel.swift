@@ -113,6 +113,41 @@ final class AppModel: ObservableObject {
         }
     }
 
+    var manualGroups: [(name: String, sessions: [WorkspaceSession])] {
+        let visible = visibleSessions
+        let grouped = Dictionary(grouping: visible.filter { $0.groupName != nil }) { $0.groupName! }
+        return grouped.keys.sorted().map { name in
+            let sessions = (grouped[name] ?? []).sorted { lhs, rhs in
+                if lhs.isPinned != rhs.isPinned { return lhs.isPinned }
+                let lo = lhs.manualOrder ?? Int.max
+                let ro = rhs.manualOrder ?? Int.max
+                if lo != ro { return lo < ro }
+                return lhs.createdAt < rhs.createdAt
+            }
+            return (name: name, sessions: sessions)
+        }
+    }
+
+    var autoGroups: [(directory: String, sessions: [WorkspaceSession])] {
+        let ungrouped = visibleSessions.filter { $0.groupName == nil }
+        if ungrouped.isEmpty { return [] }
+        var order: [String] = []
+        var groups: [String: [WorkspaceSession]] = [:]
+        for session in ungrouped {
+            let key = session.workingDirectory
+            if groups[key] == nil {
+                order.append(key)
+                groups[key] = []
+            }
+            groups[key]?.append(session)
+        }
+        return order.map { dir in (directory: dir, sessions: groups[dir] ?? []) }
+    }
+
+    var displayOrderedSessions: [WorkspaceSession] {
+        manualGroups.flatMap(\.sessions) + autoGroups.flatMap(\.sessions)
+    }
+
     func moveSession(_ id: UUID, before targetID: UUID) {
         moveSession(id, relativeTo: targetID, after: false)
     }
@@ -267,7 +302,7 @@ final class AppModel: ObservableObject {
     }
 
     func selectSession(at index: Int) {
-        let sessions = sortedSessions
+        let sessions = displayOrderedSessions.isEmpty ? sortedSessions : displayOrderedSessions
         guard sessions.indices.contains(index) else { return }
         select(sessions[index].id)
     }

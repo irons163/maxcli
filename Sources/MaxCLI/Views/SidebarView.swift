@@ -112,36 +112,11 @@ struct SidebarView: View {
     }
 
     private var manualGroups: [(name: String, sessions: [WorkspaceSession])] {
-        let visible = model.visibleSessions
-        let grouped = Dictionary(grouping: visible.filter { $0.groupName != nil }) { $0.groupName! }
-        let names = grouped.keys.sorted()
-        return names.map { name in
-            let sessions = grouped[name] ?? []
-            let sorted = sessions.sorted { lhs, rhs in
-                if lhs.isPinned != rhs.isPinned { return lhs.isPinned }
-                let lo = lhs.manualOrder ?? Int.max
-                let ro = rhs.manualOrder ?? Int.max
-                if lo != ro { return lo < ro }
-                return lhs.createdAt < rhs.createdAt
-            }
-            return (name: name, sessions: sorted)
-        }
+        model.manualGroups
     }
 
     private var autoGroups: [(directory: String, sessions: [WorkspaceSession])] {
-        let ungrouped = model.visibleSessions.filter { $0.groupName == nil }
-        if ungrouped.isEmpty { return [] }
-        var order: [String] = []
-        var groups: [String: [WorkspaceSession]] = [:]
-        for session in ungrouped {
-            let key = session.workingDirectory
-            if groups[key] == nil {
-                order.append(key)
-                groups[key] = []
-            }
-            groups[key]?.append(session)
-        }
-        return order.map { dir in (directory: dir, sessions: groups[dir] ?? []) }
+        model.autoGroups
     }
 
     private var sessionList: some View {
@@ -303,11 +278,11 @@ struct SidebarView: View {
     }
 
     private func sessionRow(for session: WorkspaceSession) -> some View {
-        let globalIndex = model.visibleSessions.firstIndex(where: { $0.id == session.id })
+        let displayIndex = model.displayOrderedSessions.firstIndex(where: { $0.id == session.id })
         return SessionRow(
             session: session,
             isSelected: model.selectedSessionID == session.id,
-            shortcutIndex: (globalIndex ?? 0) < 9 ? (globalIndex ?? 0) + 1 : nil
+            shortcutIndex: (displayIndex ?? 0) < 9 ? (displayIndex ?? 0) + 1 : nil
         )
         .contentShape(Rectangle())
         .onTapGesture { model.select(session.id) }
