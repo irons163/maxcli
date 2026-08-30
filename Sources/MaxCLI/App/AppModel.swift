@@ -290,9 +290,43 @@ final class AppModel: ObservableObject {
             customCommand: copy.customCommand,
             iconName: copy.iconName,
             iconColorName: copy.iconColorName,
-            isPinned: copy.isPinned
+            isPinned: copy.isPinned,
+            groupName: copy.groupName
         )
         addSession(copy)
+    }
+
+    var allGroupNames: [String] {
+        Array(Set(sessions.compactMap(\.groupName))).sorted()
+    }
+
+    func moveSessionToGroup(_ id: UUID, groupName: String?) {
+        let normalized = groupName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let final = (normalized?.isEmpty == true) ? nil : normalized
+        updateSession(id) { $0.groupName = final }
+        persist()
+    }
+
+    func createGroup(named name: String, for sessionID: UUID? = nil) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        if let sessionID { moveSessionToGroup(sessionID, groupName: trimmed) }
+    }
+
+    func renameGroup(from oldName: String, to newName: String) {
+        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != oldName else { return }
+        for session in sessions where session.groupName == oldName {
+            updateSession(session.id) { $0.groupName = trimmed }
+        }
+        persist()
+    }
+
+    func deleteGroup(_ name: String) {
+        for session in sessions where session.groupName == name {
+            updateSession(session.id) { $0.groupName = nil }
+        }
+        persist()
     }
 
     func togglePin(_ id: UUID) {

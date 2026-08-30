@@ -5,6 +5,14 @@ struct SidebarView: View {
     @EnvironmentObject private var model: AppModel
     let onRequestClose: (WorkspaceSession) -> Void
     @State private var draggingSessionID: UUID?
+    @State private var collapsedGroups: Set<String> = []
+    @State private var collapsedManualGroups: Set<String> = []
+    @State private var isShowingNewGroupAlert = false
+    @State private var newGroupName = ""
+    @State private var newGroupTargetID: UUID?
+    @State private var isShowingRenameAlert = false
+    @State private var renamingGroup: String?
+    @State private var renameText = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -15,6 +23,41 @@ struct SidebarView: View {
         }
         .background(.ultraThinMaterial)
         .navigationSplitViewColumnWidth(min: 240, ideal: 278, max: 340)
+        .alert("新增群組", isPresented: $isShowingNewGroupAlert) {
+            TextField("群組名稱", text: $newGroupName)
+            Button("建立") {
+                let name = newGroupName.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !name.isEmpty else { return }
+                if let target = newGroupTargetID {
+                    model.moveSessionToGroup(target, groupName: name)
+                }
+                newGroupName = ""
+                newGroupTargetID = nil
+            }
+            Button("取消", role: .cancel) {
+                newGroupName = ""
+                newGroupTargetID = nil
+            }
+        } message: {
+            Text("輸入新群組名稱")
+        }
+        .alert("重新命名群組", isPresented: $isShowingRenameAlert) {
+            TextField("群組名稱", text: $renameText)
+            Button("確定") {
+                guard let old = renamingGroup else { return }
+                let newName = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !newName.isEmpty, newName != old else { return }
+                model.renameGroup(from: old, to: newName)
+                renamingGroup = nil
+                renameText = ""
+            }
+            Button("取消", role: .cancel) {
+                renamingGroup = nil
+                renameText = ""
+            }
+        } message: {
+            Text("輸入新的群組名稱")
+        }
     }
 
     private var overview: some View {
@@ -68,14 +111,29 @@ struct SidebarView: View {
         .padding(.bottom, 8)
     }
 
-    @State private var collapsedGroups: Set<String> = []
-
-    private var groupedSessions: [(directory: String, sessions: [WorkspaceSession])] {
+    private var manualGroups: [(name: String, sessions: [WorkspaceSession])] {
         let visible = model.visibleSessions
-        if visible.isEmpty { return [] }
+        let grouped = Dictionary(grouping: visible.filter { $0.groupName != nil }) { $0.groupName! }
+        let names = grouped.keys.sorted()
+        return names.map { name in
+            let sessions = grouped[name] ?? []
+            let sorted = sessions.sorted { lhs, rhs in
+                if lhs.isPinned != rhs.isPinned { return lhs.isPinned }
+                let lo = lhs.manualOrder ?? Int.max
+                let ro = rhs.manualOrder ?? Int.max
+                if lo != ro { return lo < ro }
+                return lhs.createdAt < rhs.createdAt
+            }
+            return (name: name, sessions: sorted)
+        }
+    }
+
+    private var autoGroups: [(directory: String, sessions: [WorkspaceSession])] {
+        let ungrouped = model.visibleSessions.filter { $0.groupName == nil }
+        if ungrouped.isEmpty { return [] }
         var order: [String] = []
         var groups: [String: [WorkspaceSession]] = [:]
-        for session in visible {
+        for session in ungrouped {
             let key = session.workingDirectory
             if groups[key] == nil {
                 order.append(key)
@@ -89,123 +147,35 @@ struct SidebarView: View {
     private var sessionList: some View {
         ScrollView {
             LazyVStack(spacing: 10, pinnedViews: [.sectionHeaders]) {
-                ForEach(groupedSessions, id: \.directory) { group in
+                ForEach(manualGroups, id: \.name) { group in
+                    let isCollapsed = collapsedManualGroups.contains(group.name)
                     Section {
-                        if collapsedGroups.contains(group.directory) == false {
+                        if !isCollapsed {
                             ForEach(group.sessions, id: \.id) { session in
-                                let globalIndex = model.visibleSessions.firstIndex(where: { $0.id == session.id })
-                                SessionRow(
-                                    session: session,
-                                    isSelected: model.selectedSessionID == session.id,
-                                    shortcutIndex: (globalIndex ?? 0) < 9 ? (globalIndex ?? 0) + 1 : nil
-                                )
-                                .contentShape(Rectangle())
-                                .onTapGesture { model.select(session.id) }
-                                .onDrag {
-                                    draggingSessionID = session.id
-                                    return NSItemProvider(object: session.id.uuidString as NSString)
-                                } preview: {
-                                    SessionDragPreview(session: session)
-                                }
-                                .onDrop(
-                                    of: [UTType.plainText],
-                                    delegate: SessionReorderDelegate(
-                                        target: session.id,
-                                        draggedID: $draggingSessionID,
-                                        model: model
-                                    )
-                                )
-                                .contextMenu {
-                                    Button(session.isPinned ? model.tr("context.unpin") : model.tr("context.pin")) {
-                                        model.togglePin(session.id)
-                                    }
-                                    Button(model.tr("context.duplicate")) {
-                                        model.select(session.id)
-                                        model.duplicateSelected()
-                                    }
-                                    if model.runtime(for: session.id)?.isRunning == true {
-                                        Button(model.tr("context.stop")) { model.stop(session.id) }
-                                    } else {
-                                        Button(model.tr("context.start")) { model.start(session.id) }
-                                    }
-                                    Button(model.tr("context.restart")) { model.restart(session.id) }
-                                    if session.agent.supportsHistoryBinding {
-                                        let availableSessions = model.recentSessionsByDirectory[session.workingDirectory, default: []]
-                                            .filter { $0.source == session.agent && !$0.isSubagent }
-                                        Menu(model.trf("context.bindSession", session.agent.displayName)) {
-                                            if availableSessions.isEmpty {
-                                                Text(model.trf("context.noHistorySessions", session.agent.displayName))
-                                            }
-                                            ForEach(availableSessions) { entry in
-                                                Button {
-                                                    model.bindSession(session.id, to: entry)
-                                                } label: {
-                                                    Label(
-                                                        entry.title,
-                                                        systemImage: session.boundSessionID == entry.sessionID
-                                                            ? "checkmark.circle.fill"
-                                                            : "circle"
-                                                    )
-                                                }
-                                            }
-                                            if session.boundSessionID != nil {
-                                                Divider()
-                                                Button(model.tr("context.unbind")) {
-                                                    model.bindSession(session.id, to: nil)
-                                                }
-                                            }
-                                            if model.runtime(for: session.id)?.isRunning == true {
-                                                Divider()
-                                                Text(model.tr("context.bindNeedsRestart"))
-                                                    .font(.caption)
-                                                    .foregroundStyle(.secondary)
-                                            }
-                                        }
-                                    }
-                                    Divider()
-                                    Button(model.tr("context.copyLaunchCommand")) { model.copyLaunchCommand(session.id) }
-                                    Button(model.tr("context.revealInFinder")) { model.revealInFinder(session.id) }
-                                    Divider()
-                                    Button(model.tr("context.close"), role: .destructive) { onRequestClose(session) }
-                                }
+                                sessionRow(for: session)
                             }
                         }
                     } header: {
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                if collapsedGroups.contains(group.directory) {
-                                    collapsedGroups.remove(group.directory)
-                                } else {
-                                    collapsedGroups.insert(group.directory)
-                                }
+                        manualGroupHeader(name: group.name, count: group.sessions.count, isCollapsed: isCollapsed)
+                    }
+                }
+
+                ForEach(autoGroups, id: \.directory) { group in
+                    let isCollapsed = collapsedGroups.contains(group.directory)
+                    Section {
+                        if !isCollapsed {
+                            ForEach(group.sessions, id: \.id) { session in
+                                sessionRow(for: session)
                             }
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: collapsedGroups.contains(group.directory) ? "chevron.right" : "chevron.down")
-                                    .font(.system(size: 9, weight: .semibold))
-                                    .foregroundStyle(.secondary)
-                                Image(systemName: "folder.fill")
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(.secondary)
-                                Text(URL(fileURLWithPath: group.directory).lastPathComponent)
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundStyle(.primary)
-                                    .lineLimit(1)
-                                Text("\(group.sessions.count)")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                    .padding(.horizontal, 5)
-                                    .padding(.vertical, 1)
-                                    .background(.secondary.opacity(0.15), in: Capsule())
-                                Spacer()
-                            }
-                            .contentShape(Rectangle())
                         }
-                        .buttonStyle(.plain)
-                        .help(group.directory)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 4)
-                        .background(.ultraThinMaterial)
+                    } header: {
+                        autoGroupHeader(directory: group.directory, count: group.sessions.count, isCollapsed: isCollapsed)
+                    }
+                }
+
+                if manualGroups.isEmpty && autoGroups.isEmpty {
+                    ForEach(model.visibleSessions, id: \.id) { session in
+                        sessionRow(for: session)
                     }
                 }
             }
@@ -216,6 +186,218 @@ struct SidebarView: View {
             if model.visibleSessions.isEmpty, !model.sessions.isEmpty {
                 ContentUnavailableView.search(text: model.searchText)
             }
+        }
+    }
+
+    private func manualGroupHeader(name: String, count: Int, isCollapsed: Bool) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                if collapsedManualGroups.contains(name) {
+                    collapsedManualGroups.remove(name)
+                } else {
+                    collapsedManualGroups.insert(name)
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                Image(systemName: "person.3.fill")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.blue)
+                Text(name)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                Text("\(count)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .background(.blue.opacity(0.15), in: Capsule())
+                Spacer()
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 4)
+        .padding(.vertical, 4)
+        .background(.ultraThinMaterial)
+        .contextMenu {
+            Button("重新命名") {
+                renamingGroup = name
+                renameText = name
+                isShowingRenameAlert = true
+            }
+            Button("刪除群組", role: .destructive) {
+                model.deleteGroup(name)
+            }
+            Divider()
+            Button(isCollapsed ? "展開" : "收合") {
+                withAnimation {
+                    if isCollapsed {
+                        collapsedManualGroups.remove(name)
+                    } else {
+                        collapsedManualGroups.insert(name)
+                    }
+                }
+            }
+        }
+        .onDrop(of: [UTType.plainText], isTargeted: nil) { providers in
+            guard let provider = providers.first else { return false }
+            provider.loadObject(ofClass: NSString.self) { object, _ in
+                guard let str = object as? String,
+                      let id = UUID(uuidString: str.trimmingCharacters(in: .whitespacesAndNewlines)) else { return }
+                Task { @MainActor in model.moveSessionToGroup(id, groupName: name) }
+            }
+            return true
+        }
+    }
+
+    private func autoGroupHeader(directory: String, count: Int, isCollapsed: Bool) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                if collapsedGroups.contains(directory) {
+                    collapsedGroups.remove(directory)
+                } else {
+                    collapsedGroups.insert(directory)
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                Image(systemName: "folder.fill")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                Text(URL(fileURLWithPath: directory).lastPathComponent)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                Text("\(count)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .background(.secondary.opacity(0.15), in: Capsule())
+                Spacer()
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(directory)
+        .padding(.horizontal, 4)
+        .padding(.vertical, 4)
+        .background(.ultraThinMaterial)
+        .onDrop(of: [UTType.plainText], isTargeted: nil) { providers in
+            guard let provider = providers.first else { return false }
+            provider.loadObject(ofClass: NSString.self) { object, _ in
+                guard let str = object as? String,
+                      let id = UUID(uuidString: str.trimmingCharacters(in: .whitespacesAndNewlines)) else { return }
+                Task { @MainActor in model.moveSessionToGroup(id, groupName: nil) }
+            }
+            return true
+        }
+    }
+
+    private func sessionRow(for session: WorkspaceSession) -> some View {
+        let globalIndex = model.visibleSessions.firstIndex(where: { $0.id == session.id })
+        return SessionRow(
+            session: session,
+            isSelected: model.selectedSessionID == session.id,
+            shortcutIndex: (globalIndex ?? 0) < 9 ? (globalIndex ?? 0) + 1 : nil
+        )
+        .contentShape(Rectangle())
+        .onTapGesture { model.select(session.id) }
+        .onDrag {
+            draggingSessionID = session.id
+            return NSItemProvider(object: session.id.uuidString as NSString)
+        } preview: {
+            SessionDragPreview(session: session)
+        }
+        .onDrop(
+            of: [UTType.plainText],
+            delegate: SessionReorderDelegate(
+                target: session.id,
+                draggedID: $draggingSessionID,
+                model: model
+            )
+        )
+        .contextMenu {
+            Button(session.isPinned ? model.tr("context.unpin") : model.tr("context.pin")) {
+                model.togglePin(session.id)
+            }
+            Menu("移至群組") {
+                Button("未分組") {
+                    model.moveSessionToGroup(session.id, groupName: nil)
+                }
+                if !model.allGroupNames.isEmpty {
+                    Divider()
+                    ForEach(model.allGroupNames, id: \.self) { name in
+                        Button {
+                            model.moveSessionToGroup(session.id, groupName: name)
+                        } label: {
+                            Label(name, systemImage: session.groupName == name ? "checkmark" : "person.3")
+                        }
+                    }
+                }
+                Divider()
+                Button("新增群組…") {
+                    newGroupTargetID = session.id
+                    newGroupName = ""
+                    isShowingNewGroupAlert = true
+                }
+            }
+            Button(model.tr("context.duplicate")) {
+                model.select(session.id)
+                model.duplicateSelected()
+            }
+            if model.runtime(for: session.id)?.isRunning == true {
+                Button(model.tr("context.stop")) { model.stop(session.id) }
+            } else {
+                Button(model.tr("context.start")) { model.start(session.id) }
+            }
+            Button(model.tr("context.restart")) { model.restart(session.id) }
+            if session.agent.supportsHistoryBinding {
+                let availableSessions = model.recentSessionsByDirectory[session.workingDirectory, default: []]
+                    .filter { $0.source == session.agent && !$0.isSubagent }
+                Menu(model.trf("context.bindSession", session.agent.displayName)) {
+                    if availableSessions.isEmpty {
+                        Text(model.trf("context.noHistorySessions", session.agent.displayName))
+                    }
+                    ForEach(availableSessions) { entry in
+                        Button {
+                            model.bindSession(session.id, to: entry)
+                        } label: {
+                            Label(
+                                entry.title,
+                                systemImage: session.boundSessionID == entry.sessionID
+                                    ? "checkmark.circle.fill"
+                                    : "circle"
+                            )
+                        }
+                    }
+                    if session.boundSessionID != nil {
+                        Divider()
+                        Button(model.tr("context.unbind")) {
+                            model.bindSession(session.id, to: nil)
+                        }
+                    }
+                    if model.runtime(for: session.id)?.isRunning == true {
+                        Divider()
+                        Text(model.tr("context.bindNeedsRestart"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            Divider()
+            Button(model.tr("context.copyLaunchCommand")) { model.copyLaunchCommand(session.id) }
+            Button(model.tr("context.revealInFinder")) { model.revealInFinder(session.id) }
+            Divider()
+            Button(model.tr("context.close"), role: .destructive) { onRequestClose(session) }
         }
     }
 
@@ -275,8 +457,12 @@ struct SessionReorderDelegate: DropDelegate {
     func dropEntered(info: DropInfo) {
         guard let dragged = draggedID, dragged != target else { return }
         guard let draggedSession = model.sessions.first(where: { $0.id == dragged }),
-              let targetSession = model.sessions.first(where: { $0.id == target }),
-              draggedSession.workingDirectory == targetSession.workingDirectory else { return }
+              let targetSession = model.sessions.first(where: { $0.id == target }) else { return }
+        if draggedSession.groupName != nil || targetSession.groupName != nil {
+            guard draggedSession.groupName == targetSession.groupName else { return }
+        } else {
+            guard draggedSession.workingDirectory == targetSession.workingDirectory else { return }
+        }
         let sessions = model.visibleSessions
         guard let from = sessions.firstIndex(where: { $0.id == dragged }),
               let to = sessions.firstIndex(where: { $0.id == target })

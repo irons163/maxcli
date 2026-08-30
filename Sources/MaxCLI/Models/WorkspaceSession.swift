@@ -34,6 +34,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
     var iconColorName: String?
     var isPinned: Bool
     var manualOrder: Int?
+    var groupName: String?
     var createdAt: Date
     var lastActivatedAt: Date
     var lastActivityAt: Date?
@@ -53,6 +54,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
         iconColorName: String? = nil,
         isPinned: Bool = false,
         manualOrder: Int? = nil,
+        groupName: String? = nil,
         createdAt: Date = .now,
         lastActivatedAt: Date = .now,
         lastActivityAt: Date? = nil,
@@ -71,6 +73,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
         self.iconColorName = iconColorName
         self.isPinned = isPinned
         self.manualOrder = manualOrder
+        self.groupName = groupName
         self.createdAt = createdAt
         self.lastActivatedAt = lastActivatedAt
         self.lastActivityAt = lastActivityAt
@@ -81,7 +84,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case id, title, agent, workingDirectory, arguments, customCommand
         case boundSessionID, opencodeSessionID, iconName, iconColorName, isPinned, manualOrder
-        case createdAt, lastActivatedAt, lastActivityAt, activity, isTransient
+        case groupName, createdAt, lastActivatedAt, lastActivityAt, activity, isTransient
     }
 
     init(from decoder: Decoder) throws {
@@ -99,6 +102,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
         iconColorName = try c.decodeIfPresent(String.self, forKey: .iconColorName)
         isPinned = try c.decodeIfPresent(Bool.self, forKey: .isPinned) ?? false
         manualOrder = try c.decodeIfPresent(Int.self, forKey: .manualOrder)
+        groupName = try c.decodeIfPresent(String.self, forKey: .groupName)
         createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt) ?? .now
         lastActivatedAt = try c.decodeIfPresent(Date.self, forKey: .lastActivatedAt) ?? .now
         lastActivityAt = try c.decodeIfPresent(Date.self, forKey: .lastActivityAt)
@@ -120,6 +124,7 @@ struct WorkspaceSession: Identifiable, Codable, Hashable, Sendable {
         try c.encodeIfPresent(iconColorName, forKey: .iconColorName)
         try c.encode(isPinned, forKey: .isPinned)
         try c.encodeIfPresent(manualOrder, forKey: .manualOrder)
+        try c.encodeIfPresent(groupName, forKey: .groupName)
         try c.encode(createdAt, forKey: .createdAt)
         try c.encode(lastActivatedAt, forKey: .lastActivatedAt)
         try c.encodeIfPresent(lastActivityAt, forKey: .lastActivityAt)
