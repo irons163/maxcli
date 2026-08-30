@@ -63,6 +63,10 @@ jobs:
             APPLE_API_ISSUER_ID \
             APPLE_API_PRIVATE_KEY_BASE64; do
             if [[ -z "${!name:-}" ]]; then
+              if [[ "${{ github.event.release.prerelease }}" == "true" ]]; then
+                echo "::warning::Missing $name for prerelease, unsigned build will be produced" >&2
+                continue
+              fi
               echo "Missing required secret: $name" >&2
               exit 1
             fi
@@ -78,6 +82,14 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -euo pipefail
+          if [[ -z "${APPLE_CERTIFICATE_P12_BASE64:-}" ]]; then
+            if [[ "${{ github.event.release.prerelease }}" == "true" ]]; then
+              echo "::warning::No certificate for prerelease, skipping import" >&2
+              exit 0
+            fi
+            echo "Missing APPLE_CERTIFICATE_P12_BASE64" >&2
+            exit 1
+          fi
           KEYCHAIN_PATH="$RUNNER_TEMP/maxcli-build.keychain-db"
           CERT_PATH="$RUNNER_TEMP/maxcli-cert.p12"
           echo "$APPLE_CERTIFICATE_P12_BASE64" | base64 --decode > "$CERT_PATH"
@@ -108,6 +120,14 @@ jobs:
           APPLE_API_PRIVATE_KEY_BASE64: ${{ secrets.APPLE_API_PRIVATE_KEY_BASE64 }}
         run: |
           set -euo pipefail
+          if [[ -z "${APPLE_API_PRIVATE_KEY_BASE64:-}" ]]; then
+            if [[ "${{ github.event.release.prerelease }}" == "true" ]]; then
+              echo "::warning::No notary key for prerelease, skipping notarytool setup" >&2
+              exit 0
+            fi
+            echo "Missing APPLE_API_PRIVATE_KEY_BASE64" >&2
+            exit 1
+          fi
           KEY_PATH="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY_ID}.p8"
           echo "$APPLE_API_PRIVATE_KEY_BASE64" | base64 --decode > "$KEY_PATH"
           xcrun notarytool store-credentials "AC_NOTARY" \
@@ -140,8 +160,8 @@ jobs:
           APP_BUILD_VERSION: ${{ env.BUILD_VERSION }}
           BUILD_TRIPLE: ${{ matrix.arch.triple }}
           ARCH_LABEL: ${{ matrix.arch.label }}
-          CODESIGN_IDENTITY: ${{ github.event_name == 'release' && 'Developer ID Application' || '-' }}
-          NOTARIZE: ${{ github.event_name == 'release' && '1' || '0' }}
+          CODESIGN_IDENTITY: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 != '' && github.event_name == 'release' && 'Developer ID Application' || '-' }}
+          NOTARIZE: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 != '' && secrets.APPLE_API_PRIVATE_KEY_BASE64 != '' && github.event_name == 'release' && '1' || '0' }}
           NOTARY_PROFILE: AC_NOTARY
         run: |
           set -euo pipefail
