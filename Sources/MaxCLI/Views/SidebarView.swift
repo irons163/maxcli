@@ -68,83 +68,144 @@ struct SidebarView: View {
         .padding(.bottom, 8)
     }
 
+    @State private var collapsedGroups: Set<String> = []
+
+    private var groupedSessions: [(directory: String, sessions: [WorkspaceSession])] {
+        let visible = model.visibleSessions
+        if visible.isEmpty { return [] }
+        var order: [String] = []
+        var groups: [String: [WorkspaceSession]] = [:]
+        for session in visible {
+            let key = session.workingDirectory
+            if groups[key] == nil {
+                order.append(key)
+                groups[key] = []
+            }
+            groups[key]?.append(session)
+        }
+        return order.map { dir in (directory: dir, sessions: groups[dir] ?? []) }
+    }
+
     private var sessionList: some View {
         ScrollView {
-            LazyVStack(spacing: 4) {
-                ForEach(Array(model.visibleSessions.enumerated()), id: \.element.id) { index, session in
-                    SessionRow(
-                        session: session,
-                        isSelected: model.selectedSessionID == session.id,
-                        shortcutIndex: index < 9 ? index + 1 : nil
-                    )
-                    .contentShape(Rectangle())
-                    .onTapGesture { model.select(session.id) }
-                    .onDrag {
-                        draggingSessionID = session.id
-                        return NSItemProvider(object: session.id.uuidString as NSString)
-                    } preview: {
-                        SessionDragPreview(session: session)
-                    }
-                    .onDrop(
-                        of: [UTType.plainText],
-                        delegate: SessionReorderDelegate(
-                            target: session.id,
-                            draggedID: $draggingSessionID,
-                            model: model
-                        )
-                    )
-                    .contextMenu {
-                        Button(session.isPinned ? model.tr("context.unpin") : model.tr("context.pin")) {
-                            model.togglePin(session.id)
-                        }
-                        Button(model.tr("context.duplicate")) {
-                            model.select(session.id)
-                            model.duplicateSelected()
-                        }
-                        if model.runtime(for: session.id)?.isRunning == true {
-                            Button(model.tr("context.stop")) { model.stop(session.id) }
-                        } else {
-                            Button(model.tr("context.start")) { model.start(session.id) }
-                        }
-                        Button(model.tr("context.restart")) { model.restart(session.id) }
-                        if session.agent.supportsHistoryBinding {
-                            let availableSessions = model.recentSessionsByDirectory[session.workingDirectory, default: []]
-                                .filter { $0.source == session.agent && !$0.isSubagent }
-                            Menu(model.trf("context.bindSession", session.agent.displayName)) {
-                                if availableSessions.isEmpty {
-                                    Text(model.trf("context.noHistorySessions", session.agent.displayName))
+            LazyVStack(spacing: 10, pinnedViews: [.sectionHeaders]) {
+                ForEach(groupedSessions, id: \.directory) { group in
+                    Section {
+                        if collapsedGroups.contains(group.directory) == false {
+                            ForEach(group.sessions, id: \.id) { session in
+                                let globalIndex = model.visibleSessions.firstIndex(where: { $0.id == session.id })
+                                SessionRow(
+                                    session: session,
+                                    isSelected: model.selectedSessionID == session.id,
+                                    shortcutIndex: (globalIndex ?? 0) < 9 ? (globalIndex ?? 0) + 1 : nil
+                                )
+                                .contentShape(Rectangle())
+                                .onTapGesture { model.select(session.id) }
+                                .onDrag {
+                                    draggingSessionID = session.id
+                                    return NSItemProvider(object: session.id.uuidString as NSString)
+                                } preview: {
+                                    SessionDragPreview(session: session)
                                 }
-                                ForEach(availableSessions) { entry in
-                                    Button {
-                                        model.bindSession(session.id, to: entry)
-                                    } label: {
-                                        Label(
-                                            entry.title,
-                                            systemImage: session.boundSessionID == entry.sessionID
-                                                ? "checkmark.circle.fill"
-                                                : "circle"
-                                        )
+                                .onDrop(
+                                    of: [UTType.plainText],
+                                    delegate: SessionReorderDelegate(
+                                        target: session.id,
+                                        draggedID: $draggingSessionID,
+                                        model: model
+                                    )
+                                )
+                                .contextMenu {
+                                    Button(session.isPinned ? model.tr("context.unpin") : model.tr("context.pin")) {
+                                        model.togglePin(session.id)
                                     }
-                                }
-                                if session.boundSessionID != nil {
-                                    Divider()
-                                    Button(model.tr("context.unbind")) {
-                                        model.bindSession(session.id, to: nil)
+                                    Button(model.tr("context.duplicate")) {
+                                        model.select(session.id)
+                                        model.duplicateSelected()
                                     }
-                                }
-                                if model.runtime(for: session.id)?.isRunning == true {
+                                    if model.runtime(for: session.id)?.isRunning == true {
+                                        Button(model.tr("context.stop")) { model.stop(session.id) }
+                                    } else {
+                                        Button(model.tr("context.start")) { model.start(session.id) }
+                                    }
+                                    Button(model.tr("context.restart")) { model.restart(session.id) }
+                                    if session.agent.supportsHistoryBinding {
+                                        let availableSessions = model.recentSessionsByDirectory[session.workingDirectory, default: []]
+                                            .filter { $0.source == session.agent && !$0.isSubagent }
+                                        Menu(model.trf("context.bindSession", session.agent.displayName)) {
+                                            if availableSessions.isEmpty {
+                                                Text(model.trf("context.noHistorySessions", session.agent.displayName))
+                                            }
+                                            ForEach(availableSessions) { entry in
+                                                Button {
+                                                    model.bindSession(session.id, to: entry)
+                                                } label: {
+                                                    Label(
+                                                        entry.title,
+                                                        systemImage: session.boundSessionID == entry.sessionID
+                                                            ? "checkmark.circle.fill"
+                                                            : "circle"
+                                                    )
+                                                }
+                                            }
+                                            if session.boundSessionID != nil {
+                                                Divider()
+                                                Button(model.tr("context.unbind")) {
+                                                    model.bindSession(session.id, to: nil)
+                                                }
+                                            }
+                                            if model.runtime(for: session.id)?.isRunning == true {
+                                                Divider()
+                                                Text(model.tr("context.bindNeedsRestart"))
+                                                    .font(.caption)
+                                                    .foregroundStyle(.secondary)
+                                            }
+                                        }
+                                    }
                                     Divider()
-                                    Text(model.tr("context.bindNeedsRestart"))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                    Button(model.tr("context.copyLaunchCommand")) { model.copyLaunchCommand(session.id) }
+                                    Button(model.tr("context.revealInFinder")) { model.revealInFinder(session.id) }
+                                    Divider()
+                                    Button(model.tr("context.close"), role: .destructive) { onRequestClose(session) }
                                 }
                             }
                         }
-                        Divider()
-                        Button(model.tr("context.copyLaunchCommand")) { model.copyLaunchCommand(session.id) }
-                        Button(model.tr("context.revealInFinder")) { model.revealInFinder(session.id) }
-                        Divider()
-                        Button(model.tr("context.close"), role: .destructive) { onRequestClose(session) }
+                    } header: {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                if collapsedGroups.contains(group.directory) {
+                                    collapsedGroups.remove(group.directory)
+                                } else {
+                                    collapsedGroups.insert(group.directory)
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: collapsedGroups.contains(group.directory) ? "chevron.right" : "chevron.down")
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .foregroundStyle(.secondary)
+                                Image(systemName: "folder.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.secondary)
+                                Text(URL(fileURLWithPath: group.directory).lastPathComponent)
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(.primary)
+                                    .lineLimit(1)
+                                Text("\(group.sessions.count)")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 1)
+                                    .background(.secondary.opacity(0.15), in: Capsule())
+                                Spacer()
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .help(group.directory)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 4)
+                        .background(.ultraThinMaterial)
                     }
                 }
             }
@@ -213,6 +274,9 @@ struct SessionReorderDelegate: DropDelegate {
 
     func dropEntered(info: DropInfo) {
         guard let dragged = draggedID, dragged != target else { return }
+        guard let draggedSession = model.sessions.first(where: { $0.id == dragged }),
+              let targetSession = model.sessions.first(where: { $0.id == target }),
+              draggedSession.workingDirectory == targetSession.workingDirectory else { return }
         let sessions = model.visibleSessions
         guard let from = sessions.firstIndex(where: { $0.id == dragged }),
               let to = sessions.firstIndex(where: { $0.id == target })
