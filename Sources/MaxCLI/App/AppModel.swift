@@ -19,6 +19,7 @@ final class AppModel: ObservableObject {
     @Published var isShowingHistory = false
     @Published var sidebarVisible = true
     @Published var language: AppLanguage
+    @Published var groupByFolder = true
     @Published private(set) var workingSessionIDs: Set<UUID> = []
     @Published private(set) var firstPrompts: [UUID: String] = [:]
     @Published private(set) var modelInfoBySessionID: [UUID: OpenCodeModelInfo] = [:]
@@ -45,6 +46,7 @@ final class AppModel: ObservableObject {
     private static let userInteractionGrace: TimeInterval = 1.5
     private static let focusGrace: TimeInterval = 2.0
     private static let languageKey = "maxcli.language.v1"
+    private static let groupByFolderKey = "maxcli.groupByFolder.v1"
 
     func tr(_ key: String, _ comment: String = "") -> String {
         NSLocalizedString(key, bundle: language.bundle, comment: comment)
@@ -69,6 +71,12 @@ final class AppModel: ObservableObject {
         self.language = storedLanguage ?? .system
         $language
             .sink { language in UserDefaults.standard.setValue(language.rawValue, forKey: Self.languageKey) }
+            .store(in: &cancellables)
+        if UserDefaults.standard.object(forKey: Self.groupByFolderKey) != nil {
+            self.groupByFolder = UserDefaults.standard.bool(forKey: Self.groupByFolderKey)
+        }
+        $groupByFolder
+            .sink { value in UserDefaults.standard.set(value, forKey: Self.groupByFolderKey) }
             .store(in: &cancellables)
         updateDockBadge()
         Task { [weak self] in
@@ -145,7 +153,12 @@ final class AppModel: ObservableObject {
     }
 
     var displayOrderedSessions: [WorkspaceSession] {
-        manualGroups.flatMap(\.sessions) + autoGroups.flatMap(\.sessions)
+        let manual = manualGroups.flatMap(\.sessions)
+        if groupByFolder {
+            return manual + autoGroups.flatMap(\.sessions)
+        } else {
+            return manual + visibleSessions.filter { $0.groupName == nil }
+        }
     }
 
     func moveSession(_ id: UUID, before targetID: UUID) {

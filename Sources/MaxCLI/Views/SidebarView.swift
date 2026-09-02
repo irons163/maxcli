@@ -135,16 +135,22 @@ struct SidebarView: View {
                     }
                 }
 
-                ForEach(autoGroups, id: \.directory) { group in
-                    let isCollapsed = collapsedGroups.contains(group.directory)
-                    Section {
-                        if !isCollapsed {
-                            ForEach(group.sessions, id: \.id) { session in
-                                sessionRow(for: session)
+                if model.groupByFolder {
+                    ForEach(autoGroups, id: \.directory) { group in
+                        let isCollapsed = collapsedGroups.contains(group.directory)
+                        Section {
+                            if !isCollapsed {
+                                ForEach(group.sessions, id: \.id) { session in
+                                    sessionRow(for: session)
+                                }
                             }
+                        } header: {
+                            autoGroupHeader(directory: group.directory, count: group.sessions.count, isCollapsed: isCollapsed)
                         }
-                    } header: {
-                        autoGroupHeader(directory: group.directory, count: group.sessions.count, isCollapsed: isCollapsed)
+                    }
+                } else {
+                    ForEach(model.visibleSessions.filter { $0.groupName == nil }, id: \.id) { session in
+                        sessionRow(for: session)
                     }
                 }
 
@@ -393,6 +399,10 @@ struct SidebarView: View {
                 Button(model.tr("sidebar.stopAll"), role: .destructive) { model.stopAll() }
                     .disabled(model.runningCount == 0)
                 Divider()
+                Toggle(isOn: $model.groupByFolder) {
+                    Label("依資料夾分組", systemImage: "folder")
+                }
+                Divider()
                 Menu {
                     ForEach(AppLanguage.allCases) { language in
                         Button {
@@ -435,7 +445,7 @@ struct SessionReorderDelegate: DropDelegate {
               let targetSession = model.sessions.first(where: { $0.id == target }) else { return }
         if draggedSession.groupName != nil || targetSession.groupName != nil {
             guard draggedSession.groupName == targetSession.groupName else { return }
-        } else {
+        } else if model.groupByFolder {
             guard draggedSession.workingDirectory == targetSession.workingDirectory else { return }
         }
         let sessions = model.visibleSessions
