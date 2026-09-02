@@ -52,7 +52,12 @@ final class AppUpdater: NSObject {
     var isAvailable: Bool { true }
 
     func start() {
-        _ = updaterController
+        let updater = updaterController.updater
+        guard updater.automaticallyChecksForUpdates else { return }
+        // Sparkle normally waits for its scheduled interval before checking.
+        // Run one background check at launch so a newly published release can
+        // be discovered without requiring the user to open the menu.
+        updater.checkForUpdatesInBackground()
     }
 
     func checkForUpdates() {
