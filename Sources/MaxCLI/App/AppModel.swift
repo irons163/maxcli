@@ -20,6 +20,7 @@ final class AppModel: ObservableObject {
     @Published var sidebarVisible = true
     @Published var language: AppLanguage
     @Published var groupByFolder = true
+    @Published var gridColumns = 0
     @Published private(set) var workingSessionIDs: Set<UUID> = []
     @Published private(set) var firstPrompts: [UUID: String] = [:]
     @Published private(set) var modelInfoBySessionID: [UUID: OpenCodeModelInfo] = [:]
@@ -47,6 +48,7 @@ final class AppModel: ObservableObject {
     private static let focusGrace: TimeInterval = 2.0
     private static let languageKey = "maxcli.language.v1"
     private static let groupByFolderKey = "maxcli.groupByFolder.v1"
+    private static let gridColumnsKey = "maxcli.gridColumns.v1"
 
     func tr(_ key: String, _ comment: String = "") -> String {
         NSLocalizedString(key, bundle: language.bundle, comment: comment)
@@ -77,6 +79,11 @@ final class AppModel: ObservableObject {
         }
         $groupByFolder
             .sink { value in UserDefaults.standard.set(value, forKey: Self.groupByFolderKey) }
+            .store(in: &cancellables)
+        self.gridColumns = UserDefaults.standard.integer(forKey: Self.gridColumnsKey)
+        if self.gridColumns < 0 || self.gridColumns > 6 { self.gridColumns = 0 }
+        $gridColumns
+            .sink { value in UserDefaults.standard.set(value, forKey: Self.gridColumnsKey) }
             .store(in: &cancellables)
         updateDockBadge()
         Task { [weak self] in
