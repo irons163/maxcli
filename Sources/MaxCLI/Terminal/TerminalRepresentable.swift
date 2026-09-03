@@ -2,6 +2,15 @@ import SwiftUI
 
 final class TerminalHostView: NSView {
     private var redrawGeneration = 0
+    /// The terminal this host last attached. A view being removed (e.g. a
+    /// grid cell during a layout switch) can receive one final updateNSView
+    /// that steals the terminal back after the new host claimed it, leaving
+    /// the visible host empty (black pane). The redraw schedule re-claims it.
+    private weak var claimedTerminal: NSView?
+
+    func claim(_ terminal: NSView) {
+        claimedTerminal = terminal
+    }
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
@@ -19,7 +28,16 @@ final class TerminalHostView: NSView {
     override func layout() {
         super.layout()
         guard let terminal = subviews.first, !bounds.isEmpty else { return }
+        let oldSize = terminal.frame.size
         Self.resize(terminal, to: bounds.size)
+        if oldSize != bounds.size {
+        }
+        // During a grid→focus transition the host settles into its final size
+        // after the rehost redraws have already run; a size change here means
+        // the terminal was resized without a matching repaint.
+        if oldSize != bounds.size, window != nil {
+            forceRedrawOfTerminal()
+        }
     }
 
     static func resize(_ terminal: NSView, to size: NSSize) {
@@ -44,23 +62,42 @@ final class TerminalHostView: NSView {
         }
     }
 
+    /// Re-claims the terminal if a dying view's final update stole it back or
+    /// a dismantle orphaned it (superview == nil).
+    func reclaimTerminalIfNeeded() {
+        guard let terminal = claimedTerminal else { return }
+        guard terminal.superview !== self else { return }
+        terminal.removeFromSuperview()
+        terminal.autoresizingMask = [.width, .height]
+        addSubview(terminal)
+        if !bounds.isEmpty {
+            Self.resize(terminal, to: bounds.size)
+        }
+        terminal.needsDisplay = true
+    }
+
     /// SwiftUI may attach the host before its final grid cell size and window
-    /// backing are ready. Retry across a few main-runloop turns so a rehosted
-    /// terminal is redrawn after both have settled.
+    /// backing are ready. Retry across a few main-runloop turns (with growing
+    /// delays so a grid→focus transition fully settles) so a rehosted terminal
+    /// is redrawn after both have settled.
     func scheduleRedrawAfterAttachment() {
         redrawGeneration &+= 1
         let generation = redrawGeneration
         scheduleRedraw(generation: generation, attempt: 0)
     }
 
+    private let redrawDelays: [Double] = [0, 0.08, 0.2, 0.35]
+
     private func scheduleRedraw(generation: Int, attempt: Int) {
-        guard attempt < 3 else { return }
-        DispatchQueue.main.async { [weak self] in
+        guard attempt < redrawDelays.count else { return }
+        let delay = redrawDelays[attempt]
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
             guard let self, self.redrawGeneration == generation else { return }
             guard self.window != nil else {
                 self.scheduleRedraw(generation: generation, attempt: attempt + 1)
                 return
             }
+            self.reclaimTerminalIfNeeded()
             self.layoutSubtreeIfNeeded()
             self.forceRedrawOfTerminal()
             self.scheduleRedraw(generation: generation, attempt: attempt + 1)
@@ -127,6 +164,7 @@ struct TerminalRepresentable: NSViewRepresentable {
             terminal.removeFromSuperview()
             terminal.autoresizingMask = [.width, .height]
             host.addSubview(terminal)
+            host.claim(terminal)
             if !host.bounds.isEmpty {
                 TerminalHostView.resize(terminal, to: host.bounds.size)
             }
