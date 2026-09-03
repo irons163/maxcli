@@ -156,7 +156,9 @@ struct ContentView: View {
                         .onChange(of: model.selectedSessionID) { _, newID in
                             guard let id = newID, sessions.contains(where: { $0.id == id }) else { return }
                             guard model.layoutMode == .grid || model.layoutMode == .active else { return }
-                            withAnimation { scrollProxy.scrollTo(id, anchor: .center) }
+                            DispatchQueue.main.async {
+                                withAnimation { scrollProxy.scrollTo(id, anchor: .center) }
+                            }
                         }
                     }
                 }
