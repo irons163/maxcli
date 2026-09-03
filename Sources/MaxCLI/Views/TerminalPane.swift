@@ -29,7 +29,7 @@ struct TerminalPane: View {
             }
         }
         .shadow(color: .black.opacity(compact ? 0.18 : 0), radius: 8, y: 3)
-        .onDrop(of: [.fileURL, .image], isTargeted: $isDropTargeted) { providers in
+        .onDrop(of: [.fileURL, .image, .movie, .video, .audiovisualContent], isTargeted: $isDropTargeted) { providers in
             performDrop(providers)
         }
         .overlay {
@@ -68,10 +68,15 @@ struct TerminalPane: View {
                     continuation.resume(returning: object as? URL)
                 }
             }
-            return url?.path
+            if let path = url?.path, !path.isEmpty { return path }
         }
-        guard let data = await imageData(from: provider) else { return nil }
-        return writeTemporaryImage(data: data)
+        if let data = await imageData(from: provider) {
+            return writeTemporaryImage(data: data)
+        }
+        if let (data, ext) = await videoData(from: provider) {
+            return writeTemporaryFile(data: data, ext: ext)
+        }
+        return nil
     }
 
     private func imageData(from provider: NSItemProvider) async -> Data? {
@@ -97,6 +102,34 @@ struct TerminalPane: View {
         let file = directory.appendingPathComponent("dropped-\(UUID().uuidString).png")
         do {
             try png.write(to: file)
+            return file.path
+        } catch {
+            return nil
+        }
+    }
+
+    private func videoData(from provider: NSItemProvider) async -> (Data, String)? {
+        guard let typeId = provider.registeredTypeIdentifiers.first(where: {
+            guard let type = UTType($0) else { return false }
+            return type.isSubtype(of: .movie) || type.isSubtype(of: .video) || type.isSubtype(of: .audiovisualContent)
+        }), let uti = UTType(typeId) else { return nil }
+        let ext = uti.preferredFilenameExtension ?? "mov"
+        let data: Data? = await withCheckedContinuation { continuation in
+            provider.loadDataRepresentation(forTypeIdentifier: typeId) { data, _ in
+                continuation.resume(returning: data)
+            }
+        }
+        guard let data else { return nil }
+        return (data, ext)
+    }
+
+    private func writeTemporaryFile(data: Data, ext: String) -> String? {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("MaxCLIDrops", isDirectory: true)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let file = directory.appendingPathComponent("dropped-\(UUID().uuidString).\(ext)")
+        do {
+            try data.write(to: file)
             return file.path
         } catch {
             return nil
