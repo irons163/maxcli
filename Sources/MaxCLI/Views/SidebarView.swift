@@ -13,6 +13,9 @@ struct SidebarView: View {
     @State private var isShowingRenameAlert = false
     @State private var renamingGroup: String?
     @State private var renameText = ""
+    /// Set while a selection was initiated from the sidebar itself, where the
+    /// tapped row is visible by definition and scrolling to it would be jumpy.
+    @State private var suppressSidebarScroll = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -120,24 +123,13 @@ struct SidebarView: View {
     }
 
     private var sessionList: some View {
-        ScrollView {
-            LazyVStack(spacing: 10, pinnedViews: [.sectionHeaders]) {
-                ForEach(manualGroups, id: \.name) { group in
-                    let isCollapsed = collapsedManualGroups.contains(group.name)
-                    Section {
-                        if !isCollapsed {
-                            ForEach(group.sessions, id: \.id) { session in
-                                sessionRow(for: session)
-                            }
-                        }
-                    } header: {
-                        manualGroupHeader(name: group.name, count: group.sessions.count, isCollapsed: isCollapsed)
-                    }
-                }
-
-                if model.groupByFolder {
-                    ForEach(autoGroups, id: \.directory) { group in
-                        let isCollapsed = collapsedGroups.contains(group.directory)
+        ScrollViewReader { proxy in
+            ScrollView {
+                // Eager layout so scrollTo can reach any row; sidebar rows
+                // are lightweight text views.
+                VStack(spacing: 10) {
+                    ForEach(manualGroups, id: \.name) { group in
+                        let isCollapsed = collapsedManualGroups.contains(group.name)
                         Section {
                             if !isCollapsed {
                                 ForEach(group.sessions, id: \.id) { session in
@@ -145,23 +137,48 @@ struct SidebarView: View {
                                 }
                             }
                         } header: {
-                            autoGroupHeader(directory: group.directory, count: group.sessions.count, isCollapsed: isCollapsed)
+                            manualGroupHeader(name: group.name, count: group.sessions.count, isCollapsed: isCollapsed)
                         }
                     }
-                } else {
-                    ForEach(model.visibleSessions.filter { $0.groupName == nil }, id: \.id) { session in
-                        sessionRow(for: session)
+
+                    if model.groupByFolder {
+                        ForEach(autoGroups, id: \.directory) { group in
+                            let isCollapsed = collapsedGroups.contains(group.directory)
+                            Section {
+                                if !isCollapsed {
+                                    ForEach(group.sessions, id: \.id) { session in
+                                        sessionRow(for: session)
+                                    }
+                                }
+                            } header: {
+                                autoGroupHeader(directory: group.directory, count: group.sessions.count, isCollapsed: isCollapsed)
+                            }
+                        }
+                    } else {
+                        ForEach(model.visibleSessions.filter { $0.groupName == nil }, id: \.id) { session in
+                            sessionRow(for: session)
+                        }
+                    }
+
+                    if manualGroups.isEmpty && autoGroups.isEmpty {
+                        ForEach(model.visibleSessions, id: \.id) { session in
+                            sessionRow(for: session)
+                        }
                     }
                 }
-
-                if manualGroups.isEmpty && autoGroups.isEmpty {
-                    ForEach(model.visibleSessions, id: \.id) { session in
-                        sessionRow(for: session)
-                    }
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
+            }
+            .onChange(of: model.selectedSessionID) { _, newID in
+                guard let newID else { return }
+                if suppressSidebarScroll {
+                    suppressSidebarScroll = false
+                    return
+                }
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    proxy.scrollTo(newID, anchor: .center)
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.bottom, 8)
         }
         .overlay {
             if model.visibleSessions.isEmpty, !model.sessions.isEmpty {
@@ -225,12 +242,11 @@ struct SidebarView: View {
                 }
             }
         }
-        .onDrop(of: [UTType.plainText], isTargeted: nil) { providers in
+        .onDrop(of: SessionDragPayload.dropTypes, isTargeted: nil) { providers in
             guard let provider = providers.first else { return false }
-            provider.loadObject(ofClass: NSString.self) { object, _ in
-                guard let str = object as? String,
-                      let id = UUID(uuidString: str.trimmingCharacters(in: .whitespacesAndNewlines)) else { return }
-                Task { @MainActor in model.moveSessionToGroup(id, groupName: name) }
+            SessionDragPayload.sessionID(from: provider) { id in
+                guard let id else { return }
+                model.moveSessionToGroup(id, groupName: name)
             }
             return true
         }
@@ -272,12 +288,11 @@ struct SidebarView: View {
         .padding(.horizontal, 4)
         .padding(.vertical, 4)
         .background(.ultraThinMaterial)
-        .onDrop(of: [UTType.plainText], isTargeted: nil) { providers in
+        .onDrop(of: SessionDragPayload.dropTypes, isTargeted: nil) { providers in
             guard let provider = providers.first else { return false }
-            provider.loadObject(ofClass: NSString.self) { object, _ in
-                guard let str = object as? String,
-                      let id = UUID(uuidString: str.trimmingCharacters(in: .whitespacesAndNewlines)) else { return }
-                Task { @MainActor in model.moveSessionToGroup(id, groupName: nil) }
+            SessionDragPayload.sessionID(from: provider) { id in
+                guard let id else { return }
+                model.moveSessionToGroup(id, groupName: nil)
             }
             return true
         }
@@ -291,15 +306,18 @@ struct SidebarView: View {
             shortcutIndex: (displayIndex ?? 0) < 9 ? (displayIndex ?? 0) + 1 : nil
         )
         .contentShape(Rectangle())
-        .onTapGesture { model.select(session.id) }
+        .onTapGesture {
+            suppressSidebarScroll = true
+            model.select(session.id)
+        }
         .onDrag {
             draggingSessionID = session.id
-            return NSItemProvider(object: session.id.uuidString as NSString)
+            return SessionDragPayload.provider(for: session.id)
         } preview: {
             SessionDragPreview(session: session)
         }
         .onDrop(
-            of: [UTType.plainText],
+            of: SessionDragPayload.dropTypes,
             delegate: SessionReorderDelegate(
                 target: session.id,
                 draggedID: $draggingSessionID,

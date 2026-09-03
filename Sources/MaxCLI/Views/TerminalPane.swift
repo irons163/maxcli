@@ -6,7 +6,7 @@ struct TerminalPane: View {
     let session: WorkspaceSession
     let compact: Bool
     var onRequestClose: () -> Void = {}
-    var headerDragID: String? = nil
+    var headerDragID: UUID? = nil
     var onHeaderDragStart: (() -> Void)? = nil
     var onDoubleClick: (() -> Void)? = nil
     @State private var isDropTargeted = false
@@ -201,7 +201,7 @@ struct TerminalPane: View {
     }
 
     private struct DragSource: ViewModifier {
-        let id: String?
+        let id: UUID?
         var onStart: (() -> Void)? = nil
 
         @ViewBuilder
@@ -209,7 +209,7 @@ struct TerminalPane: View {
             if let id {
                 content.onDrag {
                     onStart?()
-                    return NSItemProvider(object: id as NSString)
+                    return SessionDragPayload.provider(for: id)
                 }
             } else {
                 content

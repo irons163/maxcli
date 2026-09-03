@@ -6,6 +6,7 @@ struct ContentView: View {
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @State private var closeCandidate: WorkspaceSession?
     @State private var draggingSessionID: UUID?
+    @State private var scrollPositionID: UUID?
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -137,82 +138,64 @@ struct ContentView: View {
         }()
         let allSections = manualSections + autoSections
 
-        if allSections.isEmpty {
-            return AnyView(
-                GeometryReader { proxy in
-                    ScrollViewReader { scrollProxy in
-                        let count = model.gridColumns != 0 ? model.gridColumns : (proxy.size.width > 1120 ? 3 : (proxy.size.width > 700 ? 2 : 1))
-                        let columns = Array(repeating: GridItem(.flexible(minimum: 330), spacing: 12), count: count)
-                        ScrollView([.vertical, .horizontal]) {
-                            LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
-                                ForEach(sessions, id: \.id) { session in
-                                    gridCell(for: session)
-                                }
+        return GeometryReader { proxy in
+            let count = model.gridColumns != 0 ? model.gridColumns : (proxy.size.width > 1120 ? 3 : (proxy.size.width > 700 ? 2 : 1))
+            // Non-lazy layout: a lazy grid positions un-materialized cells by
+            // estimate, which produced phantom blank gaps between sections
+            // (especially after scrollPosition jumps). Session counts are
+            // small, so eager layout costs nothing and positions are exact.
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    ForEach(allSections, id: \.title) { section in
+                        if !section.title.isEmpty {
+                            HStack(spacing: 6) {
+                                Image(systemName: section.icon)
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(section.icon == "person.3.fill" ? .blue : .secondary)
+                                Text(section.title)
+                                    .font(.system(size: 12, weight: .semibold))
+                                Text("\(section.sessions.count)")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 1)
+                                    .background(.secondary.opacity(0.15), in: Capsule())
+                                Spacer()
                             }
-                            .padding(12)
-                            .frame(minWidth: proxy.size.width, alignment: .topLeading)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 6)
+                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6))
                         }
-                        .background(Color(nsColor: .windowBackgroundColor))
-                        .onChange(of: model.selectedSessionID) { _, newID in
-                            guard let id = newID, sessions.contains(where: { $0.id == id }) else { return }
-                            guard model.layoutMode == .grid || model.layoutMode == .active else { return }
-                            DispatchQueue.main.async {
-                                withAnimation { scrollProxy.scrollTo(id, anchor: .center) }
+                        ForEach(Array(stride(from: 0, to: section.sessions.count, by: count)), id: \.self) { rowStart in
+                            let row = section.sessions[rowStart..<min(rowStart + count, section.sessions.count)]
+                            HStack(alignment: .top, spacing: 12) {
+                                ForEach(row, id: \.id) { session in
+                                    gridCell(for: session)
+                                        .frame(maxWidth: .infinity)
+                                }
                             }
                         }
                     }
                 }
-            )
-        }
-
-        return AnyView(
-            GeometryReader { proxy in
-                ScrollViewReader { scrollProxy in
-                    let count = model.gridColumns != 0 ? model.gridColumns : (proxy.size.width > 1120 ? 3 : (proxy.size.width > 700 ? 2 : 1))
-                    let columns = Array(repeating: GridItem(.flexible(minimum: 330), spacing: 12), count: count)
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 18, pinnedViews: [.sectionHeaders]) {
-                            ForEach(allSections, id: \.title) { section in
-                                Section {
-                                    LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
-                                        ForEach(section.sessions, id: \.id) { session in
-                                            gridCell(for: session)
-                                        }
-                                    }
-                                } header: {
-                                    if !section.title.isEmpty {
-                                        HStack(spacing: 6) {
-                                            Image(systemName: section.icon)
-                                                .font(.system(size: 11))
-                                                .foregroundStyle(section.icon == "person.3.fill" ? .blue : .secondary)
-                                            Text(section.title)
-                                                .font(.system(size: 12, weight: .semibold))
-                                            Text("\(section.sessions.count)")
-                                                .font(.caption2)
-                                                .foregroundStyle(.secondary)
-                                                .padding(.horizontal, 5)
-                                                .padding(.vertical, 1)
-                                                .background(.secondary.opacity(0.15), in: Capsule())
-                                            Spacer()
-                                        }
-                                        .padding(.horizontal, 4)
-                                        .padding(.vertical, 6)
-                                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6))
-                                    }
-                                }
-                            }
-                        }
-                        .padding(12)
-                    }
-                    .background(Color(nsColor: .windowBackgroundColor))
-                    .onChange(of: model.selectedSessionID) { _, newID in
-                        guard let id = newID, sessions.contains(where: { $0.id == id }) else { return }
-                        guard model.layoutMode == .grid || model.layoutMode == .active else { return }
-                        withAnimation { scrollProxy.scrollTo(id, anchor: .center) }
-                    }
+                .padding(12)
+            }
+            .scrollPosition(id: $scrollPositionID, anchor: .center)
+            .background(Color(nsColor: .windowBackgroundColor))
+            .onAppear {
+                // Jump (no animation) to the selected session when entering
+                // grid/active mode.
+                if let id = model.selectedSessionID, sessions.contains(where: { $0.id == id }) {
+                    scrollPositionID = id
                 }
             }
-        )
+            .onChange(of: model.selectedSessionID) { _, newID in
+                guard let id = newID, sessions.contains(where: { $0.id == id }) else { return }
+                guard model.layoutMode == .grid || model.layoutMode == .active else { return }
+                // No animation: animating the scroll materializes cells
+                // mid-flight, which makes sections and cells appear to fly.
+                scrollPositionID = id
+            }
+        }
     }
 
     private func gridCell(for session: WorkspaceSession) -> some View {
@@ -220,7 +203,7 @@ struct ContentView: View {
             session: session,
             compact: true,
             onRequestClose: { requestClose(session) },
-            headerDragID: session.id.uuidString,
+            headerDragID: session.id,
             onHeaderDragStart: { draggingSessionID = session.id },
             onDoubleClick: {
                 guard model.layoutMode == .grid else { return }
@@ -229,9 +212,11 @@ struct ContentView: View {
             }
         )
         .id(session.id)
-        .frame(minWidth: 330, minHeight: 270, idealHeight: 330)
+        // Fixed height keeps LazyVGrid's position estimates exact, so
+        // scrollPosition(id:) lands precisely even for distant cells.
+        .frame(minWidth: 330, minHeight: 300, maxHeight: 300)
         .onDrop(
-            of: [UTType.plainText],
+            of: SessionDragPayload.dropTypes,
             delegate: SessionReorderDelegate(
                 target: session.id,
                 draggedID: $draggingSessionID,
