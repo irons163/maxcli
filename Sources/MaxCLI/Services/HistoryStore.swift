@@ -21,10 +21,13 @@ enum HistoryStore {
     /// Test seam. In production this is the user's home directory.
     nonisolated(unsafe) static var homeDirectoryOverride: URL?
 
+    /// Lightweight listing for periodic scans (first-prompt previews, recent
+    /// sessions, history index). Only parses file heads / metadata — a full
+    /// transcript parse happens in transcript(for:) for a single session.
     static func listSessions() -> [HistorySession] {
         var sessions: [HistorySession] = []
         for provider in HistoryProviderKind.allCases {
-            sessions.append(contentsOf: provider.listSessions())
+            sessions.append(contentsOf: provider.listSessionSummaries())
         }
         return sessions.sorted {
             if $0.timeUpdated != $1.timeUpdated {
@@ -117,6 +120,21 @@ enum HistoryProviderKind: CaseIterable {
         case .cursor: CursorHistoryProvider.listSessions()
         case .copilot: CopilotHistoryProvider.listSessions()
         case .grok: GrokHistoryProvider.listSessions()
+        case .opencode:
+            (try? OpenCodeHistoryStore.listSessions())?.map {
+                $0.with(source: .opencode, id: HistoryRecordID.openCode($0.id))
+            } ?? []
+        }
+    }
+
+    func listSessionSummaries() -> [HistorySession] {
+        switch self {
+        case .codex: CodexHistoryProvider.listSessionSummaries()
+        case .claude: ClaudeHistoryProvider.listSessionSummaries()
+        case .gemini: GeminiHistoryProvider.listSessionSummaries()
+        case .cursor: CursorHistoryProvider.listSessionSummaries()
+        case .copilot: CopilotHistoryProvider.listSessionSummaries()
+        case .grok: GrokHistoryProvider.listSessionSummaries()
         case .opencode:
             (try? OpenCodeHistoryStore.listSessions())?.map {
                 $0.with(source: .opencode, id: HistoryRecordID.openCode($0.id))
@@ -229,6 +247,8 @@ struct HistoryJSONLRecord {
 }
 
 enum HistoryFiles {
+    /// Parses every JSON line of a file. Loads the whole file into memory —
+    /// only suitable for user-initiated, single-session reads (transcripts).
     static func jsonLines(at url: URL) -> [HistoryJSONLRecord] {
         guard let contents = try? String(contentsOf: url, encoding: .utf8) else { return [] }
         return contents
@@ -238,6 +258,67 @@ enum HistoryFiles {
                 guard let object = HistoryJSON.object(from: String(line)) else { return nil }
                 return HistoryJSONLRecord(lineNumber: index + 1, object: object)
             }
+    }
+
+    /// Parses at most `limit` leading JSON lines. Reads a bounded chunk of the
+    /// file so huge session logs never enter memory wholesale — used by the
+    /// periodic history summary scan.
+    static func headJSONLines(at url: URL, limit: Int, maxBytes: Int = 256 * 1024) -> [HistoryJSONLRecord] {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return [] }
+        defer { try? handle.close() }
+        var records: [HistoryJSONLRecord] = []
+        var buffer = Data()
+        var lineNumber = 0
+        var bytesRead = 0
+        while records.count < limit, bytesRead < maxBytes,
+              let chunk = try? handle.read(upToCount: 128 * 1024), !chunk.isEmpty
+        {
+            bytesRead += chunk.count
+            buffer.append(chunk)
+            while records.count < limit, let newline = buffer.firstIndex(of: 0x0A) {
+                let lineData = buffer[buffer.startIndex..<newline]
+                buffer.removeSubrange(buffer.startIndex...newline)
+                lineNumber += 1
+                if lineData.isEmpty { continue }
+                if let object = HistoryJSON.object(from: String(decoding: lineData, as: UTF8.self)) {
+                    records.append(HistoryJSONLRecord(lineNumber: lineNumber, object: object))
+                }
+            }
+        }
+        if records.count < limit, !buffer.isEmpty {
+            lineNumber += 1
+            if let object = HistoryJSON.object(from: String(decoding: buffer, as: UTF8.self)) {
+                records.append(HistoryJSONLRecord(lineNumber: lineNumber, object: object))
+            }
+        }
+        return records
+    }
+
+    /// Streams JSON lines one at a time with bounded memory. The handler
+    /// returns false to stop early. Never retains more than one line.
+    static func streamJSONLines(at url: URL, handler: (Int, [String: Any]) -> Bool) {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return }
+        defer { try? handle.close() }
+        var buffer = Data()
+        var lineNumber = 0
+        while let chunk = try? handle.read(upToCount: 256 * 1024), !chunk.isEmpty {
+            buffer.append(chunk)
+            while let newline = buffer.firstIndex(of: 0x0A) {
+                let lineData = buffer[buffer.startIndex..<newline]
+                buffer.removeSubrange(buffer.startIndex...newline)
+                lineNumber += 1
+                guard !lineData.isEmpty,
+                      let object = HistoryJSON.object(from: String(decoding: lineData, as: UTF8.self))
+                else { continue }
+                if handler(lineNumber, object) == false { return }
+            }
+        }
+        if !buffer.isEmpty {
+            lineNumber += 1
+            if let object = HistoryJSON.object(from: String(decoding: buffer, as: UTF8.self)) {
+                _ = handler(lineNumber, object)
+            }
+        }
     }
 
     static func files(in root: URL, where predicate: (URL) -> Bool) -> [URL] {

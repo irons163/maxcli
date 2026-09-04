@@ -93,6 +93,7 @@ final class TerminalRuntime: NSObject, @preconcurrency LocalProcessTerminalViewD
         terminalView.startProcess(
             executable: shell,
             args: CommandBuilder.loginShellArguments(for: session),
+            environment: CommandBuilder.environment(for: session),
             execName: "-\(URL(fileURLWithPath: shell).lastPathComponent)",
             currentDirectory: session.workingDirectory
         )

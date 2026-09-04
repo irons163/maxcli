@@ -219,7 +219,9 @@ private struct HistorySessionRow: View {
         let directory = URL(fileURLWithPath: session.directory).lastPathComponent
         let agent = session.source.displayName
         let date = session.timeUpdated.formatted(.relative(presentation: .named))
-        return "\(agent) · \(directory) · \(appModel.trf("history.messageCount", session.messageCount)) · \(date)"
+        // Lightweight summaries carry a 0 count; hide it rather than lie.
+        let count = session.messageCount > 0 ? " · \(appModel.trf("history.messageCount", session.messageCount))" : ""
+        return "\(agent) · \(directory)\(count) · \(date)"
     }
 }
 

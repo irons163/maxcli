@@ -81,6 +81,17 @@ enum CodexHistoryProvider {
         return sqliteSessions + legacySessions
     }
 
+    /// Lightweight summaries for the periodic scan: only the file head is
+    /// parsed (session meta + first user message), never the whole log.
+    static func listSessionSummaries() -> [HistorySession] {
+        let sqliteSessions = (try? CodexSQLiteHistoryStore.listSessions()) ?? []
+        let sqliteSessionIDs = Set(sqliteSessions.map(\.sessionID))
+        let legacySessions = files()
+            .compactMap { summary(at: $0) }
+            .filter { !sqliteSessionIDs.contains($0.sessionID) }
+        return sqliteSessions + legacySessions
+    }
+
     static func transcript(at url: URL) -> HistoryTranscript? {
         parse(at: url)
     }
@@ -94,6 +105,61 @@ enum CodexHistoryProvider {
             $0.pathExtension == "jsonl" && $0.lastPathComponent.hasPrefix("rollout-")
         }
         return Array(Set(sessions + archived)).sorted { $0.path < $1.path }
+    }
+
+    private static func summary(at url: URL) -> HistorySession? {
+        let fileDates = HistoryProviderSupport.dates(for: url)
+        var sessionID = url.deletingPathExtension().lastPathComponent
+        var directory = ""
+        var model: String?
+        var created = fileDates.created
+        var updated = fileDates.updated
+        var firstUserText: String?
+
+        HistoryFiles.headJSONLines(at: url, limit: 60).forEach { record in
+            let date = HistoryProviderSupport.date(record, fallback: updated)
+            updated = max(updated, date)
+            let type = HistoryJSON.string(record.object["type"])?.lowercased()
+
+            if type == "session_meta", let payload = HistoryJSON.object(record.object["payload"]) {
+                sessionID = HistoryJSON.string(payload["id"] ?? payload["session_id"]) ?? sessionID
+                directory = HistoryJSON.string(payload["cwd"] ?? payload["working_directory"]) ?? directory
+                model = HistoryJSON.string(payload["model"] ?? payload["model_provider"]) ?? model
+                if let metadataDate = HistoryJSON.firstDate(
+                    in: payload,
+                    keys: ["timestamp", "created_at", "createdAt"]
+                ) {
+                    created = metadataDate
+                    updated = max(updated, metadataDate)
+                }
+            } else if type == "response_item", let payload = HistoryJSON.object(record.object["payload"]),
+                      HistoryJSON.string(payload["type"])?.lowercased() == "message",
+                      HistoryJSON.string(payload["role"]) == "user",
+                      firstUserText == nil,
+                      let text = HistoryJSON.text(payload["content"])
+            {
+                firstUserText = HistoryJSON.shortened(text)
+            } else if type == "event_msg", let payload = HistoryJSON.object(record.object["payload"]),
+                      HistoryJSON.string(payload["type"]) == "user_message",
+                      firstUserText == nil,
+                      let text = HistoryJSON.text(payload["message"])
+            {
+                firstUserText = HistoryJSON.shortened(text)
+            }
+        }
+
+        return HistoryProviderSupport.session(
+            id: HistoryRecordID.file(source: .codex, path: url.path),
+            sessionID: sessionID,
+            title: firstUserText ?? "Codex session",
+            directory: directory.isEmpty ? HistoryPath.codexHome.path : directory,
+            agent: .codex,
+            model: model,
+            created: created,
+            updated: updated,
+            messages: [],
+            messageCount: 0
+        )
     }
 
     private static func parse(at url: URL) -> HistoryTranscript? {
@@ -248,6 +314,50 @@ enum ClaudeHistoryProvider {
         files().compactMap { parse(at: $0)?.session }
     }
 
+    static func listSessionSummaries() -> [HistorySession] {
+        files().compactMap { summary(at: $0) }
+    }
+
+    private static func summary(at url: URL) -> HistorySession? {
+        let fileDates = HistoryProviderSupport.dates(for: url)
+        var sessionID = url.deletingPathExtension().lastPathComponent
+        var directory = ""
+        var model: String?
+        var created = fileDates.created
+        var updated = fileDates.updated
+        var firstUserText: String?
+
+        for record in HistoryFiles.headJSONLines(at: url, limit: 40) {
+            let date = HistoryProviderSupport.date(record, fallback: updated)
+            created = min(created, date)
+            updated = max(updated, date)
+            sessionID = HistoryJSON.string(record.object["sessionId"]) ?? sessionID
+            directory = HistoryJSON.string(record.object["cwd"] ?? record.object["directory"]) ?? directory
+            let message = HistoryJSON.object(record.object["message"])
+            model = HistoryJSON.string(message?["model"]) ?? model
+            if firstUserText == nil,
+               HistoryJSON.string(record.object["type"])?.lowercased() == "user",
+               let text = HistoryJSON.text(message?["content"] ?? record.object["content"])
+            {
+                firstUserText = HistoryJSON.shortened(text)
+            }
+        }
+
+        let fallbackDirectory = url.deletingLastPathComponent().lastPathComponent
+        return HistoryProviderSupport.session(
+            id: HistoryRecordID.file(source: .claude, path: url.path),
+            sessionID: sessionID,
+            title: firstUserText ?? "Claude Code session",
+            directory: directory.isEmpty ? fallbackDirectory : directory,
+            agent: .claude,
+            model: model,
+            created: created,
+            updated: updated,
+            messages: [],
+            messageCount: 0
+        )
+    }
+
     static func transcript(at url: URL) -> HistoryTranscript? {
         parse(at: url)
     }
@@ -318,6 +428,53 @@ enum ClaudeHistoryProvider {
 enum GeminiHistoryProvider {
     static func listSessions() -> [HistorySession] {
         files().compactMap { parse(at: $0)?.session }
+    }
+
+    static func listSessionSummaries() -> [HistorySession] {
+        files().compactMap { summary(at: $0) }
+    }
+
+    private static func summary(at url: URL) -> HistorySession? {
+        let head = HistoryFiles.headJSONLines(at: url, limit: 12)
+        guard !head.isEmpty else { return nil }
+        let metadata = head.first?.object ?? [:]
+        var sessionID = HistoryJSON.string(metadata["sessionId"] ?? metadata["session_id"])
+            ?? url.deletingPathExtension().lastPathComponent
+        var directory = HistoryJSON.string(
+            metadata["cwd"] ?? metadata["projectRoot"] ?? metadata["workingDirectory"] ?? metadata["directory"]
+        )
+        let model = HistoryJSON.string(metadata["model"] ?? metadata["modelName"])
+        let fileDates = HistoryProviderSupport.dates(for: url)
+        let created = HistoryJSON.firstDate(in: metadata, keys: ["startTime", "createdAt", "timestamp"])
+            ?? fileDates.created
+        let updated = HistoryJSON.firstDate(in: metadata, keys: ["lastUpdated", "updatedAt", "timestamp"])
+            ?? fileDates.updated
+        var firstUserText: String?
+        for record in head.dropFirst() {
+            let type = HistoryJSON.string(record.object["type"])?.lowercased()
+            guard type == "user" else { continue }
+            if let text = HistoryJSON.text(record.object["content"] ?? record.object["parts"]) {
+                firstUserText = HistoryJSON.shortened(text)
+                break
+            }
+        }
+        if directory == nil {
+            let projectHash = url.deletingLastPathComponent().deletingLastPathComponent().lastPathComponent
+            directory = "Gemini project \(projectHash)"
+        }
+        sessionID = sessionID.isEmpty ? url.deletingPathExtension().lastPathComponent : sessionID
+        return HistoryProviderSupport.session(
+            id: HistoryRecordID.file(source: .gemini, path: url.path),
+            sessionID: sessionID,
+            title: firstUserText ?? "Gemini CLI session",
+            directory: directory ?? HistoryPath.geminiHome.path,
+            agent: .gemini,
+            model: model,
+            created: created,
+            updated: updated,
+            messages: [],
+            messageCount: 0
+        )
     }
 
     static func transcript(at url: URL) -> HistoryTranscript? {
@@ -411,6 +568,52 @@ enum CursorHistoryProvider {
         files().compactMap { parse(at: $0)?.session }
     }
 
+    static func listSessionSummaries() -> [HistorySession] {
+        files().compactMap { summary(at: $0) }
+    }
+
+    private static func summary(at url: URL) -> HistorySession? {
+        let fileDates = HistoryProviderSupport.dates(for: url)
+        var created = fileDates.created
+        var updated = fileDates.updated
+        var model: String?
+        var firstUserText: String?
+
+        for record in HistoryFiles.headJSONLines(at: url, limit: 40) {
+            let date = HistoryProviderSupport.date(record, fallback: updated)
+            created = min(created, date)
+            updated = max(updated, date)
+            let message = HistoryJSON.object(record.object["message"])
+            model = HistoryJSON.string(message?["model"] ?? record.object["model"]) ?? model
+            if firstUserText == nil,
+               HistoryJSON.string(record.object["role"]) == "user",
+               let text = HistoryJSON.text(message?["content"] ?? record.object["content"])
+            {
+                firstUserText = HistoryJSON.shortened(text)
+            }
+        }
+
+        let encodedProject = projectComponent(for: url)
+        let directory = decodeProjectDirectory(encodedProject)
+        let sessionID = sessionComponent(for: url) ?? url.deletingPathExtension().lastPathComponent
+        let parentID = url.pathComponents.contains("subagents")
+            ? url.deletingLastPathComponent().deletingLastPathComponent().lastPathComponent
+            : nil
+        return HistoryProviderSupport.session(
+            id: HistoryRecordID.file(source: .cursor, path: url.path),
+            sessionID: sessionID,
+            title: firstUserText ?? "Cursor Agent session",
+            directory: directory,
+            agent: .cursor,
+            model: model,
+            parentID: parentID,
+            created: created,
+            updated: updated,
+            messages: [],
+            messageCount: 0
+        )
+    }
+
     static func transcript(at url: URL) -> HistoryTranscript? {
         parse(at: url)
     }
@@ -497,6 +700,95 @@ enum CursorHistoryProvider {
 enum CopilotHistoryProvider {
     static func listSessions() -> [HistorySession] {
         files().compactMap { parse(at: $0)?.session }
+    }
+
+    static func listSessionSummaries() -> [HistorySession] {
+        guard let url = files().first else { return [] }
+        struct Draft {
+            var sessionID: String
+            var directory: String
+            var model: String?
+            var created: Date
+            var updated: Date
+            var firstUserText: String?
+            var count: Int
+        }
+        var drafts: [String: Draft] = [:]
+        var order: [String] = []
+        let fileDates = HistoryProviderSupport.dates(for: url)
+
+        HistoryFiles.streamJSONLines(at: url) { lineNumber, object in
+            let type = HistoryJSON.string(object["type"])?.lowercased() ?? ""
+            let data = HistoryJSON.object(object["data"]) ?? [:]
+            if type != "session.start" && !type.hasSuffix(".message") && !type.hasPrefix("tool.") {
+                return true
+            }
+            let date = HistoryJSON.date(object["timestamp"]) ?? fileDates.updated
+
+            if type == "session.start" {
+                let sessionID = HistoryJSON.string(data["sessionId"] ?? data["session_id"])
+                    ?? url.deletingLastPathComponent().lastPathComponent
+                if drafts[sessionID] == nil {
+                    let context = HistoryJSON.object(data["context"])
+                    let draft = Draft(
+                        sessionID: sessionID,
+                        directory: HistoryJSON.string(context?["cwd"] ?? data["cwd"] ?? data["workingDirectory"]) ?? "",
+                        model: HistoryJSON.string(data["model"] ?? context?["model"]),
+                        created: HistoryJSON.firstDate(in: data, keys: ["startTime", "createdAt"]) ?? fileDates.created,
+                        updated: date,
+                        firstUserText: nil,
+                        count: 0
+                    )
+                    drafts[sessionID] = draft
+                    order.append(sessionID)
+                }
+                return true
+            }
+
+            let currentID = drafts
+                .max { $0.value.updated < $1.value.updated }?.key
+            guard let sessionID = HistoryJSON.string(data["sessionId"] ?? data["session_id"]) ?? currentID,
+                  var draft = drafts[sessionID]
+            else { return true }
+
+            draft.updated = max(draft.updated, date)
+            switch type {
+            case "user.message":
+                draft.count += 1
+                if draft.firstUserText == nil,
+                   let text = HistoryJSON.text(data["content"] ?? data["message"])
+                {
+                    draft.firstUserText = HistoryJSON.shortened(text)
+                }
+            case "assistant.message":
+                draft.count += 1
+                draft.model = HistoryJSON.string(data["model"]) ?? draft.model
+            case "system.message":
+                draft.count += 1
+            case "tool.execution_start", "tool.execution_complete":
+                draft.count += 1
+            default:
+                break
+            }
+            drafts[sessionID] = draft
+            return true
+        }
+
+        return order.compactMap { id in
+            guard let draft = drafts[id] else { return nil }
+            return HistoryProviderSupport.session(
+                id: HistoryRecordID.file(source: .copilot, path: url.path),
+                sessionID: draft.sessionID,
+                title: draft.firstUserText ?? "GitHub Copilot session",
+                directory: draft.directory.isEmpty ? HistoryPath.copilotHome.path : draft.directory,
+                agent: .copilot,
+                model: draft.model,
+                created: draft.created,
+                updated: draft.updated,
+                messages: [],
+                messageCount: draft.count
+            )
+        }
     }
 
     static func transcript(at url: URL) -> HistoryTranscript? {
@@ -613,6 +905,47 @@ enum CopilotHistoryProvider {
 enum GrokHistoryProvider {
     static func listSessions() -> [HistorySession] {
         files().compactMap { parse(at: $0)?.session }
+    }
+
+    static func listSessionSummaries() -> [HistorySession] {
+        files().compactMap { summary(at: $0) }
+    }
+
+    private static func summary(at url: URL) -> HistorySession? {
+        let summary = summaryObject(for: url)
+        guard !summary.isEmpty else { return nil }
+        let info = HistoryJSON.object(summary["info"])
+        let fileDates = HistoryProviderSupport.dates(for: url)
+        let directory = HistoryJSON.string(
+            info?["cwd"] ?? summary["cwd"] ?? summary["working_directory"] ?? summary["workingDirectory"]
+        ) ?? fallbackDirectory(for: url)
+        let sessionID = HistoryJSON.string(
+            info?["id"] ?? info?["session_id"] ?? summary["session_id"] ?? summary["sessionId"] ?? summary["id"]
+        ) ?? url.deletingLastPathComponent().lastPathComponent
+        let model = HistoryJSON.string(summary["current_model_id"] ?? summary["model"] ?? summary["model_id"])
+        let title = HistoryJSON.string(
+            summary["generated_title"] ?? summary["session_summary"] ?? summary["title"] ?? summary["summary"]
+        )
+        let created = HistoryJSON.firstDate(
+            in: summary, keys: ["created_at", "createdAt", "start_time", "startTime"]
+        ) ?? fileDates.created
+        let updated = HistoryJSON.firstDate(
+            in: summary, keys: ["updated_at", "updatedAt", "last_updated", "lastUpdated"]
+        ) ?? fileDates.updated
+        let parentID = HistoryJSON.string(summary["parent_session_id"] ?? summary["parentSessionId"])
+        return HistoryProviderSupport.session(
+            id: HistoryRecordID.file(source: .grok, path: url.path),
+            sessionID: sessionID,
+            title: title ?? "Grok session",
+            directory: directory,
+            agent: .grok,
+            model: model,
+            parentID: parentID,
+            created: created,
+            updated: updated,
+            messages: [],
+            messageCount: 0
+        )
     }
 
     static func transcript(at url: URL) -> HistoryTranscript? {
