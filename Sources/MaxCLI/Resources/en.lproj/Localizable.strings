@@ -145,3 +145,17 @@
 "help.refreshModels" = "Refresh model list";
 "field.provider" = "Provider";
 "field.providerAll" = "All providers";
+"context.switchModel" = "Switch Model";
+"context.modelDefault" = "Default (clear model)";
+"context.switchAccount" = "Switch Account";
+"context.accountDefault" = "Default (opencode login)";
+"context.addAccount" = "Add Account…";
+"context.deleteAccount" = "Delete Account";
+"context.noAccounts" = "No stored accounts for this provider";
+"context.accountNeedsModel" = "Assign a model (-m provider/…) first";
+"field.accountName" = "Account name";
+"field.accountKey" = "API key";
+"field.accountKeyHint" = "Store a named API key for provider %@ in the Keychain and run this session under it.";
+"common.save" = "Save";
+"edit.title" = "Edit Session";
+"context.edit" = "Edit…";

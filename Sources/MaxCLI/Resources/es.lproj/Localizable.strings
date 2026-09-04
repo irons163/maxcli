@@ -145,3 +145,17 @@
 "help.refreshModels" = "Actualizar lista de modelos";
 "field.provider" = "Proveedor";
 "field.providerAll" = "Todos los proveedores";
+"context.switchModel" = "Cambiar modelo";
+"context.modelDefault" = "Predeterminado (sin modelo)";
+"context.switchAccount" = "Cambiar cuenta";
+"context.accountDefault" = "Predeterminada (inicio de sesión opencode)";
+"context.addAccount" = "Añadir cuenta…";
+"context.deleteAccount" = "Eliminar cuenta";
+"context.noAccounts" = "No hay cuentas guardadas para este proveedor";
+"context.accountNeedsModel" = "Asigna primero un modelo (-m proveedor/…)";
+"field.accountName" = "Nombre de cuenta";
+"field.accountKey" = "Clave de API";
+"field.accountKeyHint" = "Guarda una clave de API nombrada para el proveedor %@ en el Keychain y ejecuta esta sesión con ella.";
+"common.save" = "Guardar";
+"edit.title" = "Editar sesión";
+"context.edit" = "Editar…";

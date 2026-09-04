@@ -39,11 +39,19 @@ final class AppModel: ObservableObject {
     private var lastFocusAt: [UUID: Date] = [:]
     private var outputHistory: [UUID: [Int]] = [:]
     private var idleTicks: [UUID: Int] = [:]
+    /// Sessions that were working and then went silent — eligible for the
+    /// finished/waiting notification. Fresh idle sessions never qualify.
+    private var pendingIdleNotify: Set<UUID> = []
+    private var idleNotifyArmed: Set<UUID> = []
     private var lastUserInputAt: [UUID: Date] = [:]
     private var launchDates: [UUID: Date] = [:]
     private static let workingByteThreshold = 400
     private static let idleByteThreshold = 100
     private static let idleTickLimit = 4
+    /// Ticks (~0.6s each) of continued silence after the agent went idle
+    /// before treating it as "task finished" and notifying the user. Longer
+    /// than the working→idle threshold so quiet builds don't false-alarm.
+    private static let idleNotifyTickLimit = 10
     private static let userInteractionGrace: TimeInterval = 1.5
     private static let focusGrace: TimeInterval = 2.0
     private static let languageKey = "maxcli.language.v1"
@@ -221,6 +229,23 @@ final class AppModel: ObservableObject {
         NSApp?.dockTile.badgeLabel = count > 0 ? "\(count)" : ""
     }
 
+    /// The agent stopped producing output while the user is elsewhere:
+    /// flag the session as needing attention (finished turn, waiting for
+    /// input). Only fires for currently-running sessions that are not
+    /// selected and not already flagged.
+    private func notifyAgentIdle(_ id: UUID) {
+        guard selectedSessionID != id,
+              let session = session(id),
+              !session.isTransient,
+              session.activity == .running,
+              runtimes[id]?.isRunning == true
+        else { return }
+        updateSession(id) { $0.lastActivityAt = .now }
+        updateSession(id) { $0.activity = .attention }
+        NSSound(named: "Glass")?.play()
+        persist()
+    }
+
     func runtime(for sessionID: UUID) -> TerminalRuntime? {
         runtimes[sessionID]
     }
@@ -240,11 +265,24 @@ final class AppModel: ObservableObject {
         canPersistSafely = true
         var newSession = session
         newSession.activity = .launching
-        notifySessionsChanged()
         sessions.append(newSession)
+        notifySessionsChanged()
         select(newSession.id)
         start(newSession.id)
         persist()
+    }
+
+    /// One-tap session creation from a group header: reuses the group's
+    /// directory (and its most recent agent) without opening the sheet.
+    func quickAddSession(directory: String, agent: AgentKind, groupName: String? = nil) {
+        let name = URL(fileURLWithPath: directory).lastPathComponent
+        let session = WorkspaceSession(
+            title: "\(name) · \(agent.displayName)",
+            agent: agent,
+            workingDirectory: directory,
+            groupName: groupName
+        )
+        addSession(session)
     }
 
     func start(_ id: UUID) {
@@ -301,11 +339,11 @@ final class AppModel: ObservableObject {
         }
         runtimes[id] = nil
         runtimeGenerations[id] = nil
-        notifySessionsChanged()
         sessions.removeAll { $0.id == id }
         if selectedSessionID == id {
             selectedSessionID = sortedSessions.first?.id
         }
+        notifySessionsChanged()
         persist()
     }
 
@@ -386,6 +424,179 @@ final class AppModel: ObservableObject {
 
     func togglePin(_ id: UUID) {
         updateSession(id) { $0.isPinned.toggle() }
+        persist()
+    }
+
+    func updateSessionAppearance(
+        _ id: UUID,
+        title: String,
+        iconName: String?,
+        iconColorName: String?
+    ) {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        updateSession(id) { session in
+            if !trimmed.isEmpty { session.title = trimmed }
+            session.iconName = iconName
+            session.iconColorName = iconColorName
+        }
+        persist()
+    }
+
+    /// Switching the model (and thereby provider/account) requires a restart
+    /// when the session is running; the change is queued for confirmation.
+    struct PendingModelChange {
+        let sessionID: UUID
+        let model: String
+    }
+
+    @Published var pendingModelChange: PendingModelChange?
+
+    func changeSessionModel(_ id: UUID, model: String) {
+        guard session(id) != nil else { return }
+        guard runtimes[id]?.isRunning == true else {
+            applySessionModel(id, model: model)
+            return
+        }
+        pendingModelChange = PendingModelChange(sessionID: id, model: model)
+    }
+
+    func confirmModelChangeRestart() {
+        guard let pending = pendingModelChange else { return }
+        pendingModelChange = nil
+        applySessionModel(pending.sessionID, model: pending.model)
+        restart(pending.sessionID)
+    }
+
+    func cancelModelChange() {
+        pendingModelChange = nil
+    }
+
+    // MARK: - Provider accounts (multiple keys per provider)
+
+    struct PendingAccountChange {
+        let sessionID: UUID
+        let provider: String
+        let account: String?
+    }
+
+    @Published var pendingAccountChange: PendingAccountChange?
+
+    func providerAccountNames(for provider: String) -> [String] {
+        ProviderAccountStore.accountNames(provider: provider)
+    }
+
+    func saveProviderAccount(provider: String, account: String, key: String) -> Bool {
+        let name = account.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedKey = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, !trimmedKey.isEmpty else { return false }
+        return ProviderAccountStore.save(provider: provider, account: name, key: trimmedKey)
+    }
+
+    func deleteProviderAccount(provider: String, account: String) {
+        ProviderAccountStore.delete(provider: provider, account: account)
+    }
+
+    func changeSessionAccount(_ id: UUID, provider: String, account: String?) {
+        guard session(id) != nil else { return }
+        guard runtimes[id]?.isRunning == true else {
+            applySessionAccount(id, provider: provider, account: account)
+            return
+        }
+        pendingAccountChange = PendingAccountChange(sessionID: id, provider: provider, account: account)
+    }
+
+    func confirmAccountChangeRestart() {
+        guard let pending = pendingAccountChange else { return }
+        pendingAccountChange = nil
+        applySessionAccount(pending.sessionID, provider: pending.provider, account: pending.account)
+        restart(pending.sessionID)
+    }
+
+    func cancelAccountChange() {
+        pendingAccountChange = nil
+    }
+
+    private func applySessionAccount(_ id: UUID, provider: String, account: String?) {
+        updateSession(id) { session in
+            session.providerAccount = account
+            session.accountProvider = account == nil ? nil : provider
+        }
+        persist()
+    }
+
+    // MARK: - Launch arguments editing
+
+    struct PendingArgumentsChange {
+        let sessionID: UUID
+        let arguments: String?
+        let customCommand: String?
+    }
+
+    @Published var pendingArgumentsChange: PendingArgumentsChange?
+
+    /// Edits launch arguments (or the custom command). Running sessions need
+    /// a restart for the change to take effect — queued for confirmation.
+    func updateSessionLaunch(_ id: UUID, arguments: String?, customCommand: String?) {
+        guard session(id) != nil else { return }
+        guard runtimes[id]?.isRunning == true else {
+            applySessionLaunch(id, arguments: arguments, customCommand: customCommand)
+            return
+        }
+        pendingArgumentsChange = PendingArgumentsChange(
+            sessionID: id,
+            arguments: arguments,
+            customCommand: customCommand
+        )
+    }
+
+    func confirmArgumentsChangeRestart() {
+        guard let pending = pendingArgumentsChange else { return }
+        pendingArgumentsChange = nil
+        applySessionLaunch(pending.sessionID, arguments: pending.arguments, customCommand: pending.customCommand)
+        restart(pending.sessionID)
+    }
+
+    func cancelArgumentsChange() {
+        pendingArgumentsChange = nil
+    }
+
+    private func applySessionLaunch(_ id: UUID, arguments: String?, customCommand: String?) {
+        updateSession(id) { session in
+            if let arguments {
+                session.arguments = arguments.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            if let customCommand {
+                session.customCommand = customCommand.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            // An account override is provider-scoped: editing the model flag
+            // onto another provider would inject the old provider's key.
+            if let newProvider = CommandBuilder.modelProvider(for: session),
+               let assigned = session.accountProvider, assigned != newProvider {
+                session.providerAccount = nil
+                session.accountProvider = nil
+            }
+        }
+        persist()
+    }
+
+    /// Replaces the `-m` flag in the session's arguments (empty model clears it)
+    /// while preserving any other arguments.
+    private func applySessionModel(_ id: UUID, model: String) {
+        updateSession(id) { session in
+            var args = session.arguments
+            if let range = args.range(of: #"(^|\s)-m\s+\S+"#, options: .regularExpression) {
+                args = args.replacingCharacters(in: range, with: "").trimmingCharacters(in: .whitespaces)
+            }
+            let flag = model.isEmpty ? "" : "-m \(model)"
+            session.arguments = [args, flag].filter { !$0.isEmpty }.joined(separator: " ")
+            // An account override is provider-scoped: switching to a model on
+            // another provider would otherwise inject the old provider's key.
+            if let modelProvider = model.split(separator: "/").first.map(String.init),
+               let assigned = session.accountProvider, assigned != modelProvider {
+                session.providerAccount = nil
+                session.accountProvider = nil
+            }
+        }
         persist()
     }
 
@@ -509,6 +720,12 @@ final class AppModel: ObservableObject {
         case let .output(bytes):
             pendingOutputBytes[id, default: 0] += bytes
             pendingActivityAt[id] = .now
+            // The agent resumed after being flagged idle-finished.
+            if sessions.first(where: { $0.id == id })?.activity == .attention {
+                idleNotifyArmed.remove(id)
+                pendingIdleNotify.remove(id)
+                updateSession(id) { $0.activity = .running }
+            }
             guard sessions.first(where: { $0.id == id })?.activity == .launching else { return }
             updateSession(id) { $0.activity = .running }
             persist()
@@ -548,6 +765,8 @@ final class AppModel: ObservableObject {
             outputHistory[id] = nil
             lastUserInputAt[id] = nil
             launchDates[id] = nil
+            pendingIdleNotify.remove(id)
+            idleNotifyArmed.remove(id)
             updateSession(id) { session in
                 session.lastActivityAt = .now
                 if wasManual {
@@ -588,6 +807,9 @@ final class AppModel: ObservableObject {
             } ?? false
             if interacting {
                 outputHistory[id] = []
+                idleTicks[id] = nil
+                pendingIdleNotify.remove(id)
+                idleNotifyArmed.remove(id)
                 continue
             }
             var history = outputHistory[id] ?? []
@@ -596,22 +818,41 @@ final class AppModel: ObservableObject {
             outputHistory[id] = history
             let recentBytes = history.reduce(0, +)
             if working.contains(id) {
+                pendingIdleNotify.remove(id)
+                idleNotifyArmed.remove(id)
                 if recentBytes < Self.idleByteThreshold {
                     let ticks = (idleTicks[id] ?? 0) + 1
                     idleTicks[id] = ticks
                     if ticks >= Self.idleTickLimit {
+                        // Agent went quiet after working. Keep counting idle
+                        // ticks; if the silence holds it is treated as
+                        // "finished / waiting for input" and notifies.
                         working.remove(id)
-                        idleTicks[id] = nil
+                        pendingIdleNotify.insert(id)
                     }
                 } else {
                     idleTicks[id] = 0
                 }
-            } else if recentBytes >= Self.workingByteThreshold {
-                working.insert(id)
+            } else {
+                let ticks = (idleTicks[id] ?? 0) + 1
+                idleTicks[id] = ticks
+                if recentBytes >= Self.workingByteThreshold {
+                    idleTicks[id] = nil
+                    pendingIdleNotify.remove(id)
+                    idleNotifyArmed.remove(id)
+                    working.insert(id)
+                } else if pendingIdleNotify.contains(id),
+                          ticks >= Self.idleNotifyTickLimit,
+                          !idleNotifyArmed.contains(id) {
+                    idleNotifyArmed.insert(id)
+                    notifyAgentIdle(id)
+                }
             }
         }
         for id in idleTicks.keys where runtimes[id]?.isRunning != true {
             idleTicks[id] = nil
+            pendingIdleNotify.remove(id)
+            idleNotifyArmed.remove(id)
         }
         if working != workingSessionIDs {
             workingSessionIDs = working
@@ -698,8 +939,10 @@ final class AppModel: ObservableObject {
 
     private func updateSession(_ id: UUID, change: (inout WorkspaceSession) -> Void) {
         guard let index = sessions.firstIndex(where: { $0.id == id }) else { return }
-        notifySessionsChanged()
+        // Notify AFTER the mutation so derived values (attention badge, etc.)
+        // reflect the new state, not the previous one.
         change(&sessions[index])
+        notifySessionsChanged()
     }
 
     private func updateSessionQuietly(_ id: UUID, change: (inout WorkspaceSession) -> Void) {

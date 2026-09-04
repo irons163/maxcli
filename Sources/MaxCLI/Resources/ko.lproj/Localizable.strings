@@ -145,3 +145,17 @@
 "help.refreshModels" = "모델 목록 새로고침";
 "field.provider" = "프로바이더";
 "field.providerAll" = "모든 프로바이더";
+"context.switchModel" = "모델 전환";
+"context.modelDefault" = "기본값 (모델 지정 해제)";
+"context.switchAccount" = "계정 전환";
+"context.accountDefault" = "기본값 (opencode 로그인)";
+"context.addAccount" = "계정 추가…";
+"context.deleteAccount" = "계정 삭제";
+"context.noAccounts" = "이 공급자에 저장된 계정이 없습니다";
+"context.accountNeedsModel" = "먼저 모델을 지정하세요 (-m provider/…)";
+"field.accountName" = "계정 이름";
+"field.accountKey" = "API 키";
+"field.accountKeyHint" = "공급자 %@의 API 키를 Keychain에 저장하고 이 세션에서 사용합니다.";
+"common.save" = "저장";
+"edit.title" = "세션 편집";
+"context.edit" = "편집…";

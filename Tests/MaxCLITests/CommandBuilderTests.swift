@@ -85,6 +85,33 @@ final class CommandBuilderTests: XCTestCase {
         )
     }
 
+    func testOpencodeSubcommandArgumentsSkipResumeFlag() {
+        let session = WorkspaceSession(
+            title: "OC",
+            agent: .opencode,
+            workingDirectory: "/tmp",
+            arguments: "auth list",
+            opencodeSessionID: "sess_abc123"
+        )
+
+        XCTAssertEqual(
+            CommandBuilder.command(for: session, executableLocator: .isolated),
+            "opencode auth list"
+        )
+
+        let flagSession = WorkspaceSession(
+            title: "OC",
+            agent: .opencode,
+            workingDirectory: "/tmp",
+            arguments: "-m openrouter/x",
+            opencodeSessionID: "sess_abc123"
+        )
+        XCTAssertEqual(
+            CommandBuilder.command(for: flagSession, executableLocator: .isolated),
+            "opencode -m openrouter/x -s 'sess_abc123'"
+        )
+    }
+
     func testResumesBoundSessionsWithEachNativeCLIForm() {
         let cases: [(AgentKind, String, String)] = [
             (.codex, "codex-id", "cd '/tmp'; exec codex resume 'codex-id' --full-auto"),
@@ -203,5 +230,32 @@ private extension ExecutableLocator {
             homeDirectory: "/nonexistent-maxcli-home",
             additionalSearchPaths: []
         )
+    }
+}
+
+final class CommandBuilderModelProviderTests: XCTestCase {
+    func testExtractsProviderFromModelFlag() {
+        let session = WorkspaceSession(
+            title: "t",
+            agent: .opencode,
+            workingDirectory: "/tmp",
+            arguments: "-m openrouter/anthropic/claude-sonnet-4"
+        )
+        XCTAssertEqual(CommandBuilder.modelProvider(for: session), "openrouter")
+    }
+
+    func testExtractsProviderAmongOtherArguments() {
+        let session = WorkspaceSession(
+            title: "t",
+            agent: .opencode,
+            workingDirectory: "/tmp",
+            arguments: "--verbose -m opencode/claude-opus-4-6"
+        )
+        XCTAssertEqual(CommandBuilder.modelProvider(for: session), "opencode")
+    }
+
+    func testReturnsNilWithoutModelFlag() {
+        let session = WorkspaceSession(title: "t", agent: .opencode, workingDirectory: "/tmp")
+        XCTAssertNil(CommandBuilder.modelProvider(for: session))
     }
 }

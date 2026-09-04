@@ -145,3 +145,17 @@
 "help.refreshModels" = "重新整理模型清單";
 "field.provider" = "Provider";
 "field.providerAll" = "全部 provider";
+"context.switchModel" = "切換模型";
+"context.modelDefault" = "預設（清除模型指定）";
+"context.switchAccount" = "切換帳號";
+"context.accountDefault" = "預設（opencode 登入）";
+"context.addAccount" = "新增帳號…";
+"context.deleteAccount" = "刪除帳號";
+"context.noAccounts" = "此 provider 尚無儲存的帳號";
+"context.accountNeedsModel" = "請先指定模型（-m provider/…）";
+"field.accountName" = "帳號名稱";
+"field.accountKey" = "API Key";
+"field.accountKeyHint" = "為 provider %@ 儲存一把命名 API Key（Keychain），此 session 將以它執行。";
+"common.save" = "儲存";
+"edit.title" = "編輯 Session";
+"context.edit" = "編輯…";

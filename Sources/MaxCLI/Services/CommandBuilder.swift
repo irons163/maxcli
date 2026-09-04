@@ -46,10 +46,19 @@ enum CommandBuilder {
         if !arguments.isEmpty {
             parts.append(arguments)
         }
-        if session.agent == .opencode {
+        // The `-s` resume flag only applies to the TUI. A leading bare word
+        // (e.g. `auth list`, `run`) selects a subcommand, where an unknown
+        // `-s` would abort with a usage error.
+        if session.agent == .opencode, !launchesSubcommand(arguments) {
             parts.append(contentsOf: resumeArguments)
         }
         return parts.joined(separator: " ")
+    }
+
+    private static func launchesSubcommand(_ arguments: String) -> Bool {
+        let trimmed = arguments.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let first = trimmed.split(separator: " ").first else { return false }
+        return !first.hasPrefix("-")
     }
 
     private static func resumeArguments(for session: WorkspaceSession) -> [String] {
@@ -67,5 +76,45 @@ enum CommandBuilder {
         case .shell, .custom:
             return []
         }
+    }
+
+    /// The provider prefix of the session's `-m provider/model` argument,
+    /// which also decides which stored account/credential applies.
+    static func modelProvider(for session: WorkspaceSession) -> String? {
+        let args = session.arguments
+        guard let regex = try? NSRegularExpression(pattern: #"(?:^|\s)-m\s+([^/\s]+)"#) else { return nil }
+        let range = NSRange(args.startIndex..., in: args)
+        guard let match = regex.firstMatch(in: args, range: range),
+              match.numberOfRanges >= 2,
+              let providerRange = Range(match.range(at: 1), in: args)
+        else { return nil }
+        return String(args[providerRange])
+    }
+
+    /// Per-session environment. When the session has a provider account
+    /// assigned, inject `OPENCODE_CONFIG_CONTENT` with that account's API key
+    /// (from the Keychain); config `provider.options.apiKey` outranks
+    /// auth.json inside that opencode process only.
+    static func environment(for session: WorkspaceSession) -> [String]? {
+        guard session.agent == .opencode else { return nil }
+        let provider = session.accountProvider ?? modelProvider(for: session)
+        guard let provider, let account = session.providerAccount,
+              let key = ProviderAccountStore.key(provider: provider, account: account)
+        else { return nil }
+
+        let payload: [String: Any] = [
+            "provider": [
+                provider: [
+                    "options": ["apiKey": key],
+                ],
+            ],
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: payload),
+              let json = String(data: data, encoding: .utf8)
+        else { return nil }
+
+        var env = ProcessInfo.processInfo.environment
+        env["OPENCODE_CONFIG_CONTENT"] = json
+        return env.map { "\($0.key)=\($0.value)" }
     }
 }

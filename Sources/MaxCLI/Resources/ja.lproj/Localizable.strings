@@ -145,3 +145,17 @@
 "help.refreshModels" = "モデル一覧を更新";
 "field.provider" = "プロバイダー";
 "field.providerAll" = "すべてのプロバイダー";
+"context.switchModel" = "モデルを切り替え";
+"context.modelDefault" = "デフォルト（モデル指定を解除）";
+"context.switchAccount" = "アカウントを切り替え";
+"context.accountDefault" = "デフォルト（opencode ログイン）";
+"context.addAccount" = "アカウントを追加…";
+"context.deleteAccount" = "アカウントを削除";
+"context.noAccounts" = "このプロバイダーには保存されたアカウントがありません";
+"context.accountNeedsModel" = "先にモデル（-m provider/…）を指定してください";
+"field.accountName" = "アカウント名";
+"field.accountKey" = "API キー";
+"field.accountKeyHint" = "プロバイダー %@ 用の名前付き API キーを Keychain に保存し、このセッションで使用します。";
+"common.save" = "保存";
+"edit.title" = "セッションを編集";
+"context.edit" = "編集…";

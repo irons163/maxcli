@@ -145,3 +145,17 @@
 "help.refreshModels" = "刷新模型列表";
 "field.provider" = "Provider";
 "field.providerAll" = "全部 provider";
+"context.switchModel" = "切换模型";
+"context.modelDefault" = "默认（清除模型指定）";
+"context.switchAccount" = "切换账号";
+"context.accountDefault" = "默认（opencode 登录）";
+"context.addAccount" = "添加账号…";
+"context.deleteAccount" = "删除账号";
+"context.noAccounts" = "此 provider 尚无存储的账号";
+"context.accountNeedsModel" = "请先指定模型（-m provider/…）";
+"field.accountName" = "账号名称";
+"field.accountKey" = "API Key";
+"field.accountKeyHint" = "为 provider %@ 保存一把命名 API Key（Keychain），此 session 将以它运行。";
+"common.save" = "保存";
+"edit.title" = "编辑 Session";
+"context.edit" = "编辑…";

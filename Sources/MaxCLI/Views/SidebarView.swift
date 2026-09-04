@@ -1,6 +1,22 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// Frame of each session row, in the sidebar scroll view's coordinate space.
+struct SidebarRowFramesKey: PreferenceKey {
+    static let defaultValue: [UUID: CGRect] = [:]
+    static func reduce(value: inout [UUID: CGRect], nextValue: () -> [UUID: CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, new in new })
+    }
+}
+
+/// Visible bounds of the sidebar scroll view, in its own coordinate space.
+struct SidebarViewportKey: PreferenceKey {
+    static let defaultValue: CGRect = .zero
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        value = nextValue()
+    }
+}
+
 struct SidebarView: View {
     @EnvironmentObject private var model: AppModel
     let onRequestClose: (WorkspaceSession) -> Void
@@ -16,6 +32,14 @@ struct SidebarView: View {
     /// Set while a selection was initiated from the sidebar itself, where the
     /// tapped row is visible by definition and scrolling to it would be jumpy.
     @State private var suppressSidebarScroll = false
+    @State private var rowFrames: [UUID: CGRect] = [:]
+    @State private var viewportSize: CGSize = .zero
+    @State private var availableModels: [String] = []
+    @State private var isShowingAddAccountAlert = false
+    @State private var addAccountProvider: String?
+    @State private var addAccountName = ""
+    @State private var addAccountKey = ""
+    @State private var editingSessionID: UUID?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -26,6 +50,81 @@ struct SidebarView: View {
         }
         .background(.ultraThinMaterial)
         .navigationSplitViewColumnWidth(min: 240, ideal: 278, max: 340)
+        .sheet(item: Binding(
+            get: { editingSessionID.flatMap { id in model.sessions.first { $0.id == id } } },
+            set: { newValue in editingSessionID = newValue?.id }
+        )) { session in
+            EditSessionSheet(sessionID: session.id)
+                .environmentObject(model)
+        }
+        .task {
+            availableModels = await OpenCodeModels.load()
+        }
+        .alert(
+            model.tr("bind.restartTitle"),
+            isPresented: Binding(
+                get: { model.pendingModelChange != nil },
+                set: { if !$0 { model.cancelModelChange() } }
+            )
+        ) {
+            Button(model.tr("common.cancel"), role: .cancel) { model.cancelModelChange() }
+            Button(model.tr("context.restart")) { model.confirmModelChangeRestart() }
+        } message: {
+            Text(model.tr("bind.restartMessage"))
+        }
+        .alert(
+            model.tr("bind.restartTitle"),
+            isPresented: Binding(
+                get: { model.pendingAccountChange != nil },
+                set: { if !$0 { model.cancelAccountChange() } }
+            )
+        ) {
+            Button(model.tr("common.cancel"), role: .cancel) { model.cancelAccountChange() }
+            Button(model.tr("context.restart")) { model.confirmAccountChangeRestart() }
+        } message: {
+            Text(model.tr("bind.restartMessage"))
+        }
+        .alert(
+            model.tr("bind.restartTitle"),
+            isPresented: Binding(
+                get: { model.pendingArgumentsChange != nil },
+                set: { if !$0 { model.cancelArgumentsChange() } }
+            )
+        ) {
+            Button(model.tr("common.cancel"), role: .cancel) { model.cancelArgumentsChange() }
+            Button(model.tr("context.restart")) { model.confirmArgumentsChangeRestart() }
+        } message: {
+            Text(model.tr("bind.restartMessage"))
+        }
+        .alert(model.tr("context.addAccount"), isPresented: $isShowingAddAccountAlert) {
+            TextField(model.tr("field.accountName"), text: $addAccountName)
+            SecureField(model.tr("field.accountKey"), text: $addAccountKey)
+            Button(model.tr("common.save")) {
+                guard let provider = addAccountProvider else { return }
+                let saved = model.saveProviderAccount(provider: provider, account: addAccountName, key: addAccountKey)
+                if saved, let target = model.selectedSessionID,
+                   let session = model.sessions.first(where: { $0.id == target }),
+                   session.agent == .opencode,
+                   CommandBuilder.modelProvider(for: session) == provider
+                   || model.modelInfoBySessionID[target]?.providerID == provider,
+                   session.providerAccount == nil {
+                    // Offer the new key by pre-selecting it for the tapped session.
+                    model.changeSessionAccount(
+                        session.id,
+                        provider: provider,
+                        account: addAccountName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    )
+                }
+                addAccountName = ""
+                addAccountKey = ""
+            }
+            Button(model.tr("common.cancel"), role: .cancel) {
+                addAccountName = ""
+                addAccountKey = ""
+            }
+        } message: {
+            Text(model.trf("field.accountKeyHint", addAccountProvider ?? ""))
+        }
         .alert("新增群組", isPresented: $isShowingNewGroupAlert) {
             TextField("群組名稱", text: $newGroupName)
             Button("建立") {
@@ -169,12 +268,37 @@ struct SidebarView: View {
                 .padding(.horizontal, 8)
                 .padding(.bottom, 8)
             }
+            .coordinateSpace(name: "sidebarScroll")
+            .background(
+                GeometryReader { geo in
+                    Color.clear.preference(
+                        key: SidebarViewportKey.self,
+                        value: geo.frame(in: .named("sidebarScroll"))
+                    )
+                }
+            )
+            .onPreferenceChange(SidebarViewportKey.self) { viewport in
+                viewportSize = viewport.size
+            }
+            .onPreferenceChange(SidebarRowFramesKey.self) { frames in
+                rowFrames = frames
+            }
             .onChange(of: model.selectedSessionID) { _, newID in
                 guard let newID else { return }
                 if suppressSidebarScroll {
                     suppressSidebarScroll = false
                     return
                 }
+                // Scroll only when the row is (partially) obscured; keep the
+                // user's scroll position when it is already fully visible.
+                let needsScroll: Bool
+                if let frame = rowFrames[newID], viewportSize != .zero {
+                    let viewport = CGRect(origin: .zero, size: viewportSize)
+                    needsScroll = !viewport.contains(frame)
+                } else {
+                    needsScroll = true
+                }
+                guard needsScroll else { return }
                 withAnimation(.easeInOut(duration: 0.2)) {
                     proxy.scrollTo(newID, anchor: .center)
                 }
@@ -188,7 +312,37 @@ struct SidebarView: View {
     }
 
     private func manualGroupHeader(name: String, count: Int, isCollapsed: Bool) -> some View {
-        Button {
+        HStack(spacing: 6) {
+            Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(.secondary)
+            Image(systemName: "person.3.fill")
+                .font(.system(size: 11))
+                .foregroundStyle(.blue)
+            Text(name)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+            Text("\(count)")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 1)
+                .background(.blue.opacity(0.15), in: Capsule())
+            Spacer()
+
+            Button {
+                quickAddSession(manualGroup: name)
+            } label: {
+                Image(systemName: "plus.circle")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help(model.tr("sidebar.newSession"))
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
             withAnimation(.easeInOut(duration: 0.2)) {
                 if collapsedManualGroups.contains(name) {
                     collapsedManualGroups.remove(name)
@@ -196,29 +350,7 @@ struct SidebarView: View {
                     collapsedManualGroups.insert(name)
                 }
             }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                Image(systemName: "person.3.fill")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.blue)
-                Text(name)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                Text("\(count)")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 1)
-                    .background(.blue.opacity(0.15), in: Capsule())
-                Spacer()
-            }
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
         .padding(.horizontal, 4)
         .padding(.vertical, 4)
         .background(.ultraThinMaterial)
@@ -253,7 +385,37 @@ struct SidebarView: View {
     }
 
     private func autoGroupHeader(directory: String, count: Int, isCollapsed: Bool) -> some View {
-        Button {
+        HStack(spacing: 6) {
+            Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(.secondary)
+            Image(systemName: "folder.fill")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+            Text(URL(fileURLWithPath: directory).lastPathComponent)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+            Text("\(count)")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 1)
+                .background(.secondary.opacity(0.15), in: Capsule())
+            Spacer()
+
+            Button {
+                quickAddSession(directory: directory)
+            } label: {
+                Image(systemName: "plus.circle")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help(model.tr("sidebar.newSession"))
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
             withAnimation(.easeInOut(duration: 0.2)) {
                 if collapsedGroups.contains(directory) {
                     collapsedGroups.remove(directory)
@@ -261,29 +423,7 @@ struct SidebarView: View {
                     collapsedGroups.insert(directory)
                 }
             }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                Image(systemName: "folder.fill")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                Text(URL(fileURLWithPath: directory).lastPathComponent)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                Text("\(count)")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 1)
-                    .background(.secondary.opacity(0.15), in: Capsule())
-                Spacer()
-            }
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
         .help(directory)
         .padding(.horizontal, 4)
         .padding(.vertical, 4)
@@ -310,6 +450,14 @@ struct SidebarView: View {
             suppressSidebarScroll = true
             model.select(session.id)
         }
+        .background(
+            GeometryReader { geo in
+                Color.clear.preference(
+                    key: SidebarRowFramesKey.self,
+                    value: [session.id: geo.frame(in: .named("sidebarScroll"))]
+                )
+            }
+        )
         .onDrag {
             draggingSessionID = session.id
             return SessionDragPayload.provider(for: session.id)
@@ -349,6 +497,9 @@ struct SidebarView: View {
                     isShowingNewGroupAlert = true
                 }
             }
+            Button(model.tr("context.edit")) {
+                editingSessionID = session.id
+            }
             Button(model.tr("context.duplicate")) {
                 model.select(session.id)
                 model.duplicateSelected()
@@ -359,6 +510,10 @@ struct SidebarView: View {
                 Button(model.tr("context.start")) { model.start(session.id) }
             }
             Button(model.tr("context.restart")) { model.restart(session.id) }
+            if session.agent == .opencode {
+                modelSwitchMenu(for: session)
+                accountSwitchMenu(for: session)
+            }
             if session.agent.supportsHistoryBinding {
                 let availableSessions = model.recentSessionsByDirectory[session.workingDirectory, default: []]
                     .filter { $0.source == session.agent && !$0.isSubagent }
@@ -392,12 +547,112 @@ struct SidebarView: View {
                     }
                 }
             }
-            Divider()
-            Button(model.tr("context.copyLaunchCommand")) { model.copyLaunchCommand(session.id) }
-            Button(model.tr("context.revealInFinder")) { model.revealInFinder(session.id) }
-            Divider()
-            Button(model.tr("context.close"), role: .destructive) { onRequestClose(session) }
+             Divider()
+             Button(model.tr("context.copyLaunchCommand")) { model.copyLaunchCommand(session.id) }
+             Button(model.tr("context.revealInFinder")) { model.revealInFinder(session.id) }
+             Divider()
+             Button(model.tr("context.close"), role: .destructive) { onRequestClose(session) }
+         }
+     }
+
+    /// Switch model (and thereby provider/account) for an OpenCode session.
+    /// Models are grouped by the provider prefix; picking one updates the
+    /// session's `-m` argument and restarts if it is running.
+    private func modelSwitchMenu(for session: WorkspaceSession) -> some View {
+        let groupedModels = Dictionary(grouping: availableModels) { model in
+            model.split(separator: "/").first.map(String.init) ?? model
         }
+        let sortedProviders = groupedModels.keys.sorted()
+        let activeModel = model.modelInfoBySessionID[session.id].flatMap { info in
+            [info.providerID, info.modelID].compactMap { $0 }.joined(separator: "/")
+        }
+        return Menu {
+            if sortedProviders.isEmpty {
+                Text(model.tr("field.modelsLoading"))
+            }
+            ForEach(sortedProviders, id: \.self) { provider in
+                Menu(provider) {
+                    ForEach(groupedModels[provider] ?? [], id: \.self) { item in
+                        Button {
+                            model.changeSessionModel(session.id, model: item)
+                        } label: {
+                            Label(item, systemImage: item == activeModel ? "checkmark" : "circle")
+                        }
+                    }
+                }
+            }
+            Divider()
+            Button(model.tr("context.modelDefault")) {
+                model.changeSessionModel(session.id, model: "")
+            }
+        } label: {
+            Label(model.tr("context.switchModel"), systemImage: "arrow.triangle.branch")
+        }
+    }
+
+    /// Switch the named Keychain account (same provider, different API key)
+    /// the session runs under. Requires the session to carry `-m provider/…`
+    /// so the target provider is known.
+    private func accountSwitchMenu(for session: WorkspaceSession) -> some View {
+        let provider = CommandBuilder.modelProvider(for: session)
+            ?? model.modelInfoBySessionID[session.id]?.providerID
+        let accounts = provider.map { model.providerAccountNames(for: $0) } ?? []
+        return Menu {
+            if provider == nil {
+                Text(model.tr("context.accountNeedsModel"))
+            } else if accounts.isEmpty {
+                Text(model.tr("context.noAccounts"))
+            }
+            if let provider {
+                ForEach(accounts, id: \.self) { account in
+                    let isCurrent = session.providerAccount == account && session.accountProvider == provider
+                    Button {
+                        model.changeSessionAccount(session.id, provider: provider, account: account)
+                    } label: {
+                        Label(account, systemImage: isCurrent ? "checkmark" : "person")
+                    }
+                }
+                Divider()
+                Button(model.tr("context.accountDefault")) {
+                    model.changeSessionAccount(session.id, provider: provider, account: nil)
+                }
+                Divider()
+                Button(model.tr("context.addAccount")) {
+                    addAccountProvider = provider
+                    addAccountName = ""
+                    addAccountKey = ""
+                    isShowingAddAccountAlert = true
+                }
+                if !accounts.isEmpty {
+                    Menu(model.tr("context.deleteAccount")) {
+                        ForEach(accounts, id: \.self) { account in
+                            Button(account, role: .destructive) {
+                                model.deleteProviderAccount(provider: provider, account: account)
+                                if session.providerAccount == account, session.accountProvider == provider {
+                                    model.changeSessionAccount(session.id, provider: provider, account: nil)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } label: {
+            Label(model.tr("context.switchAccount"), systemImage: "person.crop.circle.badge.exclamationmark")
+        }
+    }
+
+    /// One-tap session creation from a group header: reuses the group's most
+    /// recent session as the template (agent + directory).
+    private func quickAddSession(directory: String) {
+        let template = model.sortedSessions.last { $0.workingDirectory == directory && $0.groupName == nil }
+        model.quickAddSession(directory: directory, agent: template?.agent ?? .opencode)
+    }
+
+    private func quickAddSession(manualGroup name: String) {
+        let sessions = manualGroups.first { $0.name == name }?.sessions ?? []
+        let template = sessions.last
+        let directory = template?.workingDirectory ?? FileManager.default.homeDirectoryForCurrentUser.path
+        model.quickAddSession(directory: directory, agent: template?.agent ?? .opencode, groupName: name)
     }
 
     private var footer: some View {
